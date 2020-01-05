@@ -158,7 +158,7 @@ class DfuTransportTCP(DfuTransport):
     def open(self):
         super().open()
         try:
-            self.__ensure_bootloader()
+            # self.__ensure_bootloader()
             self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.client_socket.settimeout(self.socket_timeout)
             # 지정한 HOST와 PORT를 사용하여 서버에 접속합니다. 
