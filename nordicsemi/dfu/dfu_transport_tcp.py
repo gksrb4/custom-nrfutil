@@ -16,6 +16,7 @@ from nordicsemi.dfu.dfu_transport   import DfuTransport, DfuEvent, TRANSPORT_LOG
 from pc_ble_driver_py.exceptions    import NordicSemiException
 from nordicsemi.lister.device_lister import DeviceLister
 from nordicsemi.dfu.dfu_trigger import DFUTrigger
+from nordicsemi.dfu.dfu_transport_serial import DfuTransportSerial
 
 class ValidationException(NordicSemiException):
     """"
@@ -161,7 +162,6 @@ class DfuTransportTCP(DfuTransport):
             # self.__ensure_bootloader()
             self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.client_socket.settimeout(self.socket_timeout)
-            # 지정한 HOST와 PORT를 사용하여 서버에 접속합니다. 
             client_socket.connect((self.host, self.port))
             self.dfu_adapter = DFUAdapter(self.client_socket)
         except Exception as e:
@@ -469,3 +469,10 @@ class DfuTransportTCP(DfuTransport):
         else:
             raise NordicSemiException('Response Code {}'.format(
                 get_dict_key(DfuTransport.RES_CODE, resp[2])))
+
+
+if __name__ == "__main__":
+     socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+     host = "192.168.0.31"
+     port = 5000
+     socket.connect((host, port))
