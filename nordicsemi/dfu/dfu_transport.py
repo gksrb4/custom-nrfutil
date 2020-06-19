@@ -45,7 +45,8 @@ logger = logging.getLogger(__name__)
 # Custom logging level for logging all transport events, including all bytes
 # being transported over the wire or over the air.
 # Note that this logging level is more verbose than logging.DEBUG.
-TRANSPORT_LOGGING_LEVEL = 5
+TRANSPORT_LOGGING_LEVEL = logging.CRITICAL
+# TRANSPORT_LOGGING_LEVEL = 5 # logging.CRITICAL
 
 
 class DfuEvent:

@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import binascii
 import logging
 import struct
+import socket
 
 # Python 3rd party imports
 from serial import Serial
@@ -84,9 +85,9 @@ class DFUAdapter:
 
     def send_message(self, data):
         packet = Slip.encode(data)
-        logger.log(TRANSPORT_LOGGING_LEVEL, 'SLIP: --> ' + str(data))
+        logger.log(TRANSPORT_LOGGING_LEVEL, f'SLIP[{len(data)}]: --> ' + str(data))
         try:
-            self.socket.sendall(packet)
+            self.socket.sendall(bytearray(packet))
         except SerialException as e:
             raise NordicSemiException('Sending to tcp/ip failed: ' + str(e) + '. '
                                       'If MSD is enabled on the target device, try to disable it ref. '
@@ -98,7 +99,7 @@ class DFUAdapter:
         decoded_data = []
 
         while finished == False:
-            byte = self.socket.recv(2)
+            byte = self.socket.recv(1)
             if byte:
                 (byte) = struct.unpack('B', byte)[0]
                 (finished, current_state, decoded_data) \
@@ -107,19 +108,19 @@ class DFUAdapter:
                 current_state = Slip.SLIP_STATE_CLEARING_INVALID_PACKET
                 return None
 
-        logger.log(TRANSPORT_LOGGING_LEVEL, 'SLIP: <-- ' + str(decoded_data))
+        logger.log(TRANSPORT_LOGGING_LEVEL, f'SLIP[{len(decoded_data)}]: <-- ' + str(decoded_data))
 
         return decoded_data
 
 class DfuTransportTCP(DfuTransport):
 
     DEFAULT_PORT = 2274
-    DEFAULT_SOCKET_TIMEOUT = 30.0  # Timeout time for opennig socket
-    DEFAULT_TIMEOUT = 30.0  # Timeout time for board response
+    DEFAULT_SOCKET_TIMEOUT = 15.0  # Timeout time for opennig socket
+    DEFAULT_TIMEOUT = 10.0  # Timeout time for board response
     DEFAULT_SERIAL_PORT_TIMEOUT = 1.0  # Timeout time on serial port read
     DEFAULT_PRN                 = 0
     DEFAULT_DO_PING = True
-
+    
     OP_CODE = {
         'CreateObject'          : 0x01,
         'SetPRN'                : 0x02,
@@ -147,26 +148,26 @@ class DfuTransportTCP(DfuTransport):
         self.socket_timeout = socket_timeout
         self.timeout = timeout
         self.prn         = prn
-        self.dfu_adapter = None
-        self.ping_id     = 0
         self.do_ping     = do_ping
 
         self.mtu         = 0
+        self.ping_id     = 0
 
+        self.dfu_adapter = None
+        self.client_socket = None
         """:type: serial.Serial """
 
 
     def open(self):
         super().open()
         try:
-            # self.__ensure_bootloader()
             self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.client_socket.settimeout(self.socket_timeout)
-            client_socket.connect((self.host, self.port))
+            self.client_socket.connect((self.host, self.port))
+            self.__ensure_bootloader()
             self.dfu_adapter = DFUAdapter(self.client_socket)
         except Exception as e:
-            raise NordicSemiException("TCP/IP socket could not be opened"
-              ". Reason: {1}".format(e.strerror))
+            raise NordicSemiException("TCP/IP socket could not be opened. Reason: {}".format(e))
 
         if self.do_ping:
             ping_success = False
@@ -185,6 +186,9 @@ class DfuTransportTCP(DfuTransport):
     def close(self):
         super().close()
         self.client_socket.close()
+
+    def jump_from_buttonless_mode_to_bootloader(self):
+        pass
 
     def send_init_packet(self, init_packet):
         def try_to_recover():
@@ -271,45 +275,80 @@ class DfuTransportTCP(DfuTransport):
 
             self._send_event(event_type=DfuEvent.PROGRESS_EVENT, progress=len(data))
 
-    def __ensure_bootloader(self):
-        lister = DeviceLister()
-
-        device = None
+    def send_dfu_trigger_msg(self):
+        print('send_dfu_trigger_msg')
+        packet = bytearray()
+        packet.append(0x23)
+        packet.append(0x23)
+        packet.append(0x00)
+        packet.append(0x02)
+        packet.append(0xAD)
+        packet.append(0xDE)
+        print('dfu msg: {packet}')
+        self.client_socket.sendall(bytes(packet))
+    
+    def wait_login_msg(self):
         start = datetime.now()
-        while not device and datetime.now() - start < timedelta(seconds=self.timeout):
-            time.sleep(0.5)
-            device = lister.get_device(com=self.com_port)
+        packet = None
+        received = False
+        while ((datetime.now() - start < timedelta(seconds=15)) and (not received)):
+            bs = self.client_socket.recv(1024)
+            packet = bytearray(bs)
+            if len(packet) >= 2:
+                received = True
+                print("wait_login_msg received")
+        print(f'received: {received}')
+        print(f'packet: {packet}')
+        print(f'packet[0]: {packet[0]}')
+        print(f'packet[1]: {packet[1]}')
+        print(f'(packet[0] == 0x10): {(packet[0] == 0x10)}')
+        print(f'(packet[1] == 0x04): {(packet[1] == 0x04)}')
+        print(f'if: {(received == True) and (packet[0] == 0x10) and (packet[1] == 0x04)}')
+        print(f'pack: {(packet[0] == 0x10) and (packet[1] == 0x04)}')
+        print(f'received: {(received == True)}')
+        if (received == True) and (packet[0] == 0x10) and (packet[1] == 0x04):
+            print('received')
+            return True
+        else:
+            print('Failed')
+            return False
+    
+    def wait_trigger_msg_resp(self, ret):
+        start = datetime.now()
+        packet = None
+        received = False
+        while ((datetime.now() - start < timedelta(seconds=15)) and (not received)):
+            bs = self.client_socket.recv(1024)
+            packet = bytearray(bs)
+            if len(packet) >= 6:
+                received = True
+                print(f'packet: {packet}')
+        if received and packet[0] == 0x23 and packet[1] == 0x24 and packet[2] == 0x00 \
+            and packet[3] == 0x02 and packet[4] == ret and packet[5] == 00:
+            return True
+        else:
+            return False
 
-        if device:
-            device_serial_number = device.serial_number
-
-            if not self.__is_device_in_bootloader_mode(device):
-                retry_count = 10
-                wait_time_ms = 500
-
-                trigger = DFUTrigger()
-                try:
-                    trigger.enter_bootloader_mode(device)
-                    logger.info("Serial: DFU bootloader was triggered")
-                except NordicSemiException as err:
-                    logger.error(err)
-
-
-                for checks in range(retry_count):
-                    logger.info("Serial: Waiting {} ms for device to enter bootloader {}/{} time"\
-                    .format(500, checks + 1, retry_count))
-
-                    time.sleep(wait_time_ms / 1000.0)
-
-                    device = lister.get_device(serial_number=device_serial_number)
-                    if self.__is_device_in_bootloader_mode(device):
-                        self.com_port = device.get_first_available_com_port()
-                        break
-
-                trigger.clean()
-            if not self.__is_device_in_bootloader_mode(device):
-                logger.info("Serial: Device is either not in bootloader mode, or using an unsupported bootloader.")
-
+    def __ensure_bootloader(self):
+        if not self.wait_login_msg():
+            return
+        print("recevie login msg")
+        self.send_dfu_trigger_msg()
+        if not self.wait_trigger_msg_resp(0):
+            raise NordicSemiException("Tcpip Dfu Trigger Failed.")
+        print("go to bootloader")
+        self.client_socket.close()
+        time.sleep(10)
+        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.client_socket.settimeout(self.socket_timeout)
+        self.client_socket.connect((self.host, self.port))
+        time.sleep(5)
+        self.send_dfu_trigger_msg()
+        if not self.wait_trigger_msg_resp(1):
+            raise NordicSemiException("Tcpip Dfu Trigger Failed.")
+        print("confirm in bootloader")
+        # self.jump_from_buttonless_mode_to_bootloader()
+        
     def __is_device_in_bootloader_mode(self, device):
         if not device:
             return False
@@ -337,7 +376,7 @@ class DfuTransportTCP(DfuTransport):
         self.dfu_adapter.send_message([DfuTransportSerial.OP_CODE['Ping'], self.ping_id])
         resp = self.dfu_adapter.get_message() # Receive raw response to check return code
 
-        if (resp is None):
+        if not resp:
             logger.debug('Serial: No ping response')
             return False
 
@@ -447,7 +486,7 @@ class DfuTransportTCP(DfuTransport):
 
         resp = self.dfu_adapter.get_message()
 
-        if resp is None:
+        if not resp:
             return None
 
         if resp[0] != DfuTransportSerial.OP_CODE['Response']:

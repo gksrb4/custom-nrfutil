@@ -50,6 +50,7 @@ from nordicsemi.dfu.bl_dfu_sett import BLDFUSettings
 from nordicsemi.dfu.dfu import Dfu
 from nordicsemi.dfu.dfu_transport import DfuEvent, TRANSPORT_LOGGING_LEVEL
 from nordicsemi.dfu.dfu_transport_serial import DfuTransportSerial
+from nordicsemi.dfu.dfu_transport_tcp import DfuTransportTCP
 from nordicsemi.dfu.package import Package
 from nordicsemi import version as nrfutil_version
 from nordicsemi.dfu.signing import Signing
@@ -1054,6 +1055,60 @@ def serial(package, port, connect_delay, flow_control, packet_receipt_notificati
 
     do_serial(package, port, connect_delay, flow_control, packet_receipt_notification, baud_rate, serial_number, True,
               timeout)
+
+
+
+@dfu.command(short_help="Update the firmware on a device over a Tcp/ip connection.")
+@click.option('-pkg', '--package',
+              help='Filename of the DFU package.',
+              type=click.Path(exists=True, resolve_path=True, file_okay=True, dir_okay=False),
+              required=False)
+@click.option('-ip', '--ip-address',
+              help='Tcp/ip Server ip address.',
+              type=click.STRING,
+              required=True)
+@click.option('-p', '--port',
+              help='Tcp/ip server port. default port number: 2274',
+              type=click.INT,
+              required=False)
+@click.option('-prn', '--packet-receipt-notification',
+              help='Set the packet receipt notification value',
+              type=click.INT,
+              required=False)
+@click.option('-t', '--timeout',
+              help='Set the timeout in seconds for board to respond (default: 30 seconds)',
+              type=click.INT,
+              required=False)
+def tcp(package, ip_address, port, packet_receipt_notification, timeout):
+    """Perform a Device Firmware Update on a device with a bootloader that supports Tcp/ip DFU."""
+    if package is None:
+        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        package = os.path.join(root_dir, 'pkgs', 'nrf52_dfu_default.zip')
+    if port is None:
+        port = DfuTransportTCP.DEFAULT_PORT
+    if packet_receipt_notification is None:
+        packet_receipt_notification = DfuTransportTCP.DEFAULT_PRN
+    ping = DfuTransportTCP.DEFAULT_DO_PING
+    if timeout is None:
+        timeout = DfuTransportTCP.DEFAULT_TIMEOUT
+
+    logger.info(f'connect to ip: {ip_address}, port: {port}')
+    # TODO: add socket_timeout
+    tcp_backend = DfuTransportTCP(host=ip_address, port=port,
+                                        prn=packet_receipt_notification, do_ping=ping,
+                                        timeout=timeout)
+    tcp_backend.register_events_callback(DfuEvent.PROGRESS_EVENT, update_progress)
+    dfu = Dfu(zip_file_path = package, dfu_transport = tcp_backend, connect_delay = 3)
+
+    if logger.getEffectiveLevel() > logging.INFO:
+        with click.progressbar(length=dfu.dfu_get_total_size()) as bar:
+            global global_bar
+            global_bar = bar
+            dfu.dfu_send_images()
+    else:
+        dfu.dfu_send_images()
+
+    click.echo("Device programmed.")
 
 
 def enumerate_ports():
