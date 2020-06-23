@@ -38,3 +38,5 @@
 """ Version definition for nrfutil. """
 
 NRFUTIL_VERSION = "6.1.0"
+
+CUS_VERSION = "1.0.0"
