@@ -115,7 +115,7 @@ class DFUAdapter:
 
 class DfuTransportTCP(DfuTransport):
 
-    DEFAULT_PORT = 2274
+    DEFAULT_PORT = 5000
     DEFAULT_SOCKET_TIMEOUT = 5.0  # Timeout time for opennig socket
     DEFAULT_TIMEOUT = 10.0  # Timeout time for board response
     DEFAULT_PRN                 = 1

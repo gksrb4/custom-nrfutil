@@ -255,7 +255,7 @@ def cli(verbose, output):
 @cli.command()
 def version():
     """Display nrfutil version."""
-    click.echo("nrfutil version {}".format(nrfutil_version.NRFUTIL_VERSION))
+    click.echo("nrfutil-cus version {} by {}".format(nrfutil_version.CUS_VERSION, nrfutil_version.NRFUTIL_VERSION))
     logger.info("PyPi URL: https://pypi.python.org/pypi/nrfutil")
     logger.debug("GitHub URL: https://github.com/NordicSemiconductor/pc-nrfutil")
 
@@ -1062,7 +1062,7 @@ def serial(package, port, connect_delay, flow_control, packet_receipt_notificati
 @click.option('-pkg', '--package',
               help='Filename of the DFU package.',
               type=click.Path(exists=True, resolve_path=True, file_okay=True, dir_okay=False),
-              required=False)
+              required=True)
 @click.option('-ip', '--ip-address',
               help='Tcp/ip Server ip address.',
               type=click.STRING,

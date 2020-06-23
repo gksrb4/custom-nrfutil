@@ -61,7 +61,7 @@ try:
     import pkg_resources
     installed_packages = [d for d in pkg_resources.working_set]
     flat_installed_packages = [package.project_name for package in installed_packages]
-    package = installed_packages[flat_installed_packages.index('nrfutil')]
+    package = installed_packages[flat_installed_packages.index('nrfutil-cus')]
     installed_versions = [int(i) for i in package.version.split(".")]
     new_versions = [int(i) for i in version.NRFUTIL_VERSION.split(".")]
     legacy_version = False
@@ -117,7 +117,7 @@ dll_excludes = [
     "GDI32.DLL"]
 
 build_dir = os.environ.get("NRFUTIL_BUILD_DIR", "./{}".format(version.NRFUTIL_VERSION))
-description = """A Python package that includes the nrfutil utility and the nordicsemi library"""
+description = """A Python package that includes the nrfutil-cus utility and the nordicsemi library"""
 
 with open("requirements.txt") as reqs_file:
     reqs = reqs_file.readlines()
@@ -135,12 +135,11 @@ class NoseTestCommand(TestCommand):
 
 
 setup(
-    name="nrfutil",
-    version=version.NRFUTIL_VERSION,
+    name="nrfutil-cus",
+    version=version.CUS_VERSION,
     license="Modified BSD License",
     author="Nordic Semiconductor ASA",
-    url="https://github.com/NordicSemiconductor/pc-nrfutil",
-    description="Nordic Semiconductor nrfutil utility and Python library",
+    description=f"nrfutil-cus by {version.NRFUTIL_VERSION}",
     long_description=description,
     packages=find_packages(exclude=["tests.*", "tests"]),
     package_data={
@@ -181,10 +180,10 @@ setup(
     },
     entry_points='''
       [console_scripts]
-      nrfutil = nordicsemi.__main__:cli
+      nrfutil-cus = nordicsemi.__main__:cli
     ''',
     console=[{
         "script": "./nordicsemi/__main__.py",
-        "dest_base": "nrfutil"
+        "dest_base": "nrfutil-cus"
     }],
 )
