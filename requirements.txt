@@ -1,4 +1,4 @@
-antlib >= 1.1b0; sys_platform == 'win32'
+antlib>=1.1b0; sys_platform == 'win32'
 click
 crcmod
 ecdsa
