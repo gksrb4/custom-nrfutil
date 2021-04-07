@@ -7,7 +7,6 @@ import struct
 logger = logging.getLogger(__name__)
 
 class DfuFileTransfer():
-
     DEFAULT_PORT = 5000
     DEFAULT_SOCKET_TIMEOUT = 5.0  # Timeout time for opennig socket
     DEFAULT_TIMEOUT = 10.0  # Timeout time for board response
@@ -146,6 +145,7 @@ if __name__ == '__main__':
         data = f.read()
         dft._send_dfu_file("PT200TWR", data)
         ret, data = dft.socket_rcv()
-        if ret:
-            print(data)
+        if not ret:
+            raise Exception("Fail to receive response")
+        print(data)
 

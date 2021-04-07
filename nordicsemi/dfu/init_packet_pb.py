@@ -35,7 +35,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-from . import dfu_cc_pb2 as pb
+from . import dfu_cc2_pb2 as pb
 from enum import Enum
 
 class SigningTypes(Enum):
@@ -80,7 +80,8 @@ class InitPacketPB:
                  sd_size=0,
                  app_size=0,
                  bl_size=0,
-                 sd_req=None
+                 sd_req=None,
+                 model_name=None
                  ):
 
         if from_bytes is not None:
@@ -119,6 +120,7 @@ class InitPacketPB:
             self.init_command.sd_size = sd_size
             self.init_command.bl_size = bl_size
             self.init_command.app_size = app_size
+            self.init_command.model_name = model_name
 
             self.init_command.boot_validation.extend(boot_validation)
             self.packet.command.init.CopyFrom(self.init_command)

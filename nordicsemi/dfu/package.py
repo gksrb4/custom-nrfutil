@@ -74,6 +74,7 @@ class PacketField(Enum):
     HW_VERSION = 2
     FW_VERSION = 3
     REQUIRED_SOFTDEVICES_ARRAY = 4
+    MODEL_NAME = 5
 
 class Package:
     """
@@ -122,6 +123,7 @@ class Package:
                  bl_version=DEFAULT_BL_VERSION,
                  sd_req=DEFAULT_SD_REQ,
                  sd_id=DEFAULT_SD_ID,
+                 model_name=None,
                  app_fw=None,
                  bootloader_fw=None,
                  softdevice_fw=None,
@@ -151,6 +153,7 @@ class Package:
         :param Signing signer: Instance of Signing() for Signing key file (PEM)
         :param int zigbee_ota_min_hw_version: Minimal zigbee ota hardware version
         :param int zigbee_ota_max_hw_version: Maximum zigbee ota hardware version
+        :param str model_name: Passtech Device Model Name
         :return: None
         """
 
@@ -182,7 +185,8 @@ class Package:
                                      firmware_version=app_version,
                                      filename=app_fw,
                                      boot_validation_type=app_boot_validation_type,
-                                     init_packet_data=init_packet_vars)
+                                     init_packet_data=init_packet_vars,
+                                     model_name=model_name)
 
         if sd_req is not None:
             init_packet_vars[PacketField.REQUIRED_SOFTDEVICES_ARRAY] = sd_req
@@ -192,14 +196,16 @@ class Package:
                                      firmware_version=bl_version,
                                      filename=bootloader_fw,
                                      boot_validation_type=[ValidationTypes.VALIDATE_GENERATED_CRC],
-                                     init_packet_data=init_packet_vars)
+                                     init_packet_data=init_packet_vars,
+                                     model_name=model_name)
 
         if softdevice_fw:
             self.__add_firmware_info(firmware_type=HexType.SOFTDEVICE,
                                      firmware_version=0xFFFFFFFF,
                                      filename=softdevice_fw,
                                      boot_validation_type=sd_boot_validation_type,
-                                     init_packet_data=init_packet_vars)
+                                     init_packet_data=init_packet_vars,
+                                     model_name=model_name)
 
         assert(not signer or isinstance(signer, Signing))
         self.signer = signer
@@ -457,7 +463,9 @@ DFU Package: <{0}>:
                             sd_size=sd_size,
                             app_size=app_size,
                             bl_size=bl_size,
-                            sd_req=firmware_data[FirmwareKeys.INIT_PACKET_DATA][PacketField.REQUIRED_SOFTDEVICES_ARRAY])
+                            sd_req=firmware_data[FirmwareKeys.INIT_PACKET_DATA][PacketField.REQUIRED_SOFTDEVICES_ARRAY],
+                            model_name=firmware_data[FirmwareKeys.INIT_PACKET_DATA][PacketField.MODEL_NAME],
+                            )
 
             if (self.signer is not None):
                 signature = self.signer.sign(init_packet.get_init_command_bytes())
@@ -587,7 +595,7 @@ DFU Package: <{0}>:
     def _is_bootloader_softdevice_combination(firmwares):
         return (HexType.BOOTLOADER in firmwares) and (HexType.SOFTDEVICE in firmwares)
 
-    def __add_firmware_info(self, firmware_type, firmware_version, filename, init_packet_data, boot_validation_type, sd_size=None, bl_size=None):
+    def __add_firmware_info(self, firmware_type, firmware_version, filename, init_packet_data, boot_validation_type, sd_size=None, bl_size=None, model_name=None):
         self.firmwares_data[firmware_type] = {
             FirmwareKeys.FIRMWARE_FILENAME: filename,
             FirmwareKeys.INIT_PACKET_DATA: init_packet_data.copy(),
@@ -601,6 +609,9 @@ DFU Package: <{0}>:
 
         if firmware_version is not None:
             self.firmwares_data[firmware_type][FirmwareKeys.INIT_PACKET_DATA][PacketField.FW_VERSION] = firmware_version
+
+        if model_name is not None:
+            self.firmwares_data[firmware_type][FirmwareKeys.INIT_PACKET_DATA][PacketField.MODEL_NAME] = model_name
 
     @staticmethod
     def normalize_firmware_to_bin(work_dir, firmware_path):

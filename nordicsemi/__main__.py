@@ -590,6 +590,10 @@ def pkg():
               help='The private (signing) key in PEM format.',
               required=False,
               type=click.Path(exists=True, resolve_path=True, file_okay=True, dir_okay=False))
+@click.option('--model_name',
+              help='Passtech Device Model Name',
+              required=True,
+              type=click.STRING)
 @click.option('--external-app',
               help='Indicates that the FW upgrade is intended to be passed through '
                    '(not applied on the receiving device)',
@@ -640,6 +644,7 @@ def generate(zipfile,
            sd_boot_validation,
            app_boot_validation,
            key_file,
+           model_name,
            external_app,
            zigbee,
            zigbee_manufacturer_id,
@@ -785,6 +790,9 @@ def generate(zipfile,
     if zigbee and zigbee_ota_fw_version is None:
         zigbee_ota_fw_version = 0
 
+    if model_name is None:
+        model_name = ""
+
     sd_req_list = []
     if sd_req is not None:
         try:
@@ -873,6 +881,7 @@ def generate(zipfile,
                       bootloader_version,
                       sd_req_list,
                       sd_id_list,
+                      model_name,
                       application,
                       bootloader,
                       softdevice,
@@ -913,7 +922,8 @@ def generate(zipfile,
                           None,
                           None,
                           signer,
-                          True)
+                          True,
+                          model_name=model_name)
 
         package.generate_package(zipfile_path)
         remove(binfile)
