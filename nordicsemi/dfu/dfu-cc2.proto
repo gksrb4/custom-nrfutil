@@ -61,7 +61,8 @@ message InitCommand {
 	optional bool			is_debug		= 9 [default = false];
 
 	repeated BootValidation	boot_validation	= 10;
-	required string 		model_name	    = 11 [(nanopb).max_size = 16];
+	required string 		company	        = 11 [(nanopb).max_size = 8];
+	required string 		model_name	    = 12 [(nanopb).max_size = 16];
 }
 
 message ResetCommand {

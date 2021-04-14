@@ -1,1 +1,4 @@
-python setup.py build && python setup.py install  
+# env\scripts\activate
+
+# python setup.py build && python setup.py install
+

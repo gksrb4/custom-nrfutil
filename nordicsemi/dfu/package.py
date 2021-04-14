@@ -74,7 +74,8 @@ class PacketField(Enum):
     HW_VERSION = 2
     FW_VERSION = 3
     REQUIRED_SOFTDEVICES_ARRAY = 4
-    MODEL_NAME = 5
+    COMPANY    = 5
+    MODEL_NAME = 6
 
 class Package:
     """
@@ -114,7 +115,7 @@ class Package:
     DEFAULT_SD_ID = [0xFFFE]
     DEFAULT_DFU_VER = 0.5
     MANIFEST_FILENAME = "manifest.json"
-    DEFAULT_BOOT_VALIDATION_TYPE = ValidationTypes.VALIDATE_GENERATED_CRC.name
+    DEFAULT_BOOT_VALIDATION_TYPE = ValidationTypes.VALIDATE_GENERATED_SHA256.name
 
     def __init__(self,
                  debug_mode=DEFAULT_DEBUG_MODE,
@@ -123,6 +124,7 @@ class Package:
                  bl_version=DEFAULT_BL_VERSION,
                  sd_req=DEFAULT_SD_REQ,
                  sd_id=DEFAULT_SD_ID,
+                 company=None,
                  model_name=None,
                  app_fw=None,
                  bootloader_fw=None,
@@ -170,12 +172,12 @@ class Package:
         if sd_boot_validation is not None:
             sd_boot_validation_type = [ValidationTypes[sd_boot_validation]]
         else:
-            sd_boot_validation_type = [ValidationTypes.VALIDATE_GENERATED_CRC]
+            sd_boot_validation_type = [ValidationTypes.VALIDATE_GENERATED_SHA256]
 
         if app_boot_validation is not None:
             app_boot_validation_type = [ValidationTypes[app_boot_validation]]
         else:
-            app_boot_validation_type = [ValidationTypes.VALIDATE_GENERATED_CRC]
+            app_boot_validation_type = [ValidationTypes.VALIDATE_GENERATED_SHA256]
 
         self.firmwares_data = {}
 
@@ -186,6 +188,7 @@ class Package:
                                      filename=app_fw,
                                      boot_validation_type=app_boot_validation_type,
                                      init_packet_data=init_packet_vars,
+                                     company=company,
                                      model_name=model_name)
 
         if sd_req is not None:
@@ -195,8 +198,9 @@ class Package:
             self.__add_firmware_info(firmware_type=HexType.BOOTLOADER,
                                      firmware_version=bl_version,
                                      filename=bootloader_fw,
-                                     boot_validation_type=[ValidationTypes.VALIDATE_GENERATED_CRC],
+                                     boot_validation_type=[ValidationTypes.VALIDATE_GENERATED_SHA256],
                                      init_packet_data=init_packet_vars,
+                                     company=company,
                                      model_name=model_name)
 
         if softdevice_fw:
@@ -205,6 +209,7 @@ class Package:
                                      filename=softdevice_fw,
                                      boot_validation_type=sd_boot_validation_type,
                                      init_packet_data=init_packet_vars,
+                                     company=company,
                                      model_name=model_name)
 
         assert(not signer or isinstance(signer, Signing))
@@ -312,6 +317,8 @@ class Package:
       |- boot_validation_signature (little-endian): {17}
       |
       |- is_debug: {18}
+      |- company: {19}
+      |- model_name: {20}
 
 """.format(index,
         type_strs[hex_type],
@@ -332,6 +339,8 @@ class Package:
         boot_validation_type,
         boot_validation_bytes,
         cmd.init.is_debug,
+        cmd.init.company,
+        cmd.init.model_name,
         )
 
         return s
@@ -464,6 +473,7 @@ DFU Package: <{0}>:
                             app_size=app_size,
                             bl_size=bl_size,
                             sd_req=firmware_data[FirmwareKeys.INIT_PACKET_DATA][PacketField.REQUIRED_SOFTDEVICES_ARRAY],
+                            company=firmware_data[FirmwareKeys.INIT_PACKET_DATA][PacketField.COMPANY],
                             model_name=firmware_data[FirmwareKeys.INIT_PACKET_DATA][PacketField.MODEL_NAME],
                             )
 
@@ -595,7 +605,7 @@ DFU Package: <{0}>:
     def _is_bootloader_softdevice_combination(firmwares):
         return (HexType.BOOTLOADER in firmwares) and (HexType.SOFTDEVICE in firmwares)
 
-    def __add_firmware_info(self, firmware_type, firmware_version, filename, init_packet_data, boot_validation_type, sd_size=None, bl_size=None, model_name=None):
+    def __add_firmware_info(self, firmware_type, firmware_version, filename, init_packet_data, boot_validation_type, sd_size=None, bl_size=None, company=None, model_name=None):
         self.firmwares_data[firmware_type] = {
             FirmwareKeys.FIRMWARE_FILENAME: filename,
             FirmwareKeys.INIT_PACKET_DATA: init_packet_data.copy(),
@@ -609,6 +619,9 @@ DFU Package: <{0}>:
 
         if firmware_version is not None:
             self.firmwares_data[firmware_type][FirmwareKeys.INIT_PACKET_DATA][PacketField.FW_VERSION] = firmware_version
+
+        if company is not None:
+            self.firmwares_data[firmware_type][FirmwareKeys.INIT_PACKET_DATA][PacketField.COMPANY] = company
 
         if model_name is not None:
             self.firmwares_data[firmware_type][FirmwareKeys.INIT_PACKET_DATA][PacketField.MODEL_NAME] = model_name

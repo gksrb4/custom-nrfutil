@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto2',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\rdfu-cc2.proto\x12\x03\x64\x66u\x1a\x0cnanopb.proto\"6\n\x04Hash\x12 \n\thash_type\x18\x01 \x02(\x0e\x32\r.dfu.HashType\x12\x0c\n\x04hash\x18\x02 \x02(\x0c\"B\n\x0e\x42ootValidation\x12!\n\x04type\x18\x01 \x02(\x0e\x32\x13.dfu.ValidationType\x12\r\n\x05\x62ytes\x18\x02 \x02(\x0c\"\x93\x02\n\x0bInitCommand\x12\x12\n\nfw_version\x18\x01 \x01(\r\x12\x12\n\nhw_version\x18\x02 \x01(\r\x12\x12\n\x06sd_req\x18\x03 \x03(\rB\x02\x10\x01\x12\x19\n\x04type\x18\x04 \x01(\x0e\x32\x0b.dfu.FwType\x12\x0f\n\x07sd_size\x18\x05 \x01(\r\x12\x0f\n\x07\x62l_size\x18\x06 \x01(\r\x12\x10\n\x08\x61pp_size\x18\x07 \x01(\r\x12\x17\n\x04hash\x18\x08 \x01(\x0b\x32\t.dfu.Hash\x12\x17\n\x08is_debug\x18\t \x01(\x08:\x05\x66\x61lse\x12,\n\x0f\x62oot_validation\x18\n \x03(\x0b\x32\x13.dfu.BootValidation\x12\x19\n\nmodel_name\x18\x0b \x02(\tB\x05\x92?\x02\x08\x10\"\x1f\n\x0cResetCommand\x12\x0f\n\x07timeout\x18\x01 \x02(\r\"i\n\x07\x43ommand\x12\x1c\n\x07op_code\x18\x01 \x01(\x0e\x32\x0b.dfu.OpCode\x12\x1e\n\x04init\x18\x02 \x01(\x0b\x32\x10.dfu.InitCommand\x12 \n\x05reset\x18\x03 \x01(\x0b\x32\x11.dfu.ResetCommand\"m\n\rSignedCommand\x12\x1d\n\x07\x63ommand\x18\x01 \x02(\x0b\x32\x0c.dfu.Command\x12*\n\x0esignature_type\x18\x02 \x02(\x0e\x32\x12.dfu.SignatureType\x12\x11\n\tsignature\x18\x03 \x02(\x0c\"S\n\x06Packet\x12\x1d\n\x07\x63ommand\x18\x01 \x01(\x0b\x32\x0c.dfu.Command\x12*\n\x0esigned_command\x18\x02 \x01(\x0b\x32\x12.dfu.SignedCommand*\x1d\n\x06OpCode\x12\t\n\x05RESET\x10\x00\x12\x08\n\x04INIT\x10\x01*n\n\x06\x46wType\x12\x0f\n\x0b\x41PPLICATION\x10\x00\x12\x0e\n\nSOFTDEVICE\x10\x01\x12\x0e\n\nBOOTLOADER\x10\x02\x12\x19\n\x15SOFTDEVICE_BOOTLOADER\x10\x03\x12\x18\n\x14\x45XTERNAL_APPLICATION\x10\x04*D\n\x08HashType\x12\x0b\n\x07NO_HASH\x10\x00\x12\x07\n\x03\x43RC\x10\x01\x12\n\n\x06SHA128\x10\x02\x12\n\n\x06SHA256\x10\x03\x12\n\n\x06SHA512\x10\x04*t\n\x0eValidationType\x12\x11\n\rNO_VALIDATION\x10\x00\x12\x1a\n\x16VALIDATE_GENERATED_CRC\x10\x01\x12\x13\n\x0fVALIDATE_SHA256\x10\x02\x12\x1e\n\x1aVALIDATE_ECDSA_P256_SHA256\x10\x03*3\n\rSignatureType\x12\x15\n\x11\x45\x43\x44SA_P256_SHA256\x10\x00\x12\x0b\n\x07\x45\x44\x32\x35\x35\x31\x39\x10\x01'
+  serialized_pb=b'\n\rdfu-cc2.proto\x12\x03\x64\x66u\x1a\x0cnanopb.proto\"6\n\x04Hash\x12 \n\thash_type\x18\x01 \x02(\x0e\x32\r.dfu.HashType\x12\x0c\n\x04hash\x18\x02 \x02(\x0c\"B\n\x0e\x42ootValidation\x12!\n\x04type\x18\x01 \x02(\x0e\x32\x13.dfu.ValidationType\x12\r\n\x05\x62ytes\x18\x02 \x02(\x0c\"\xab\x02\n\x0bInitCommand\x12\x12\n\nfw_version\x18\x01 \x01(\r\x12\x12\n\nhw_version\x18\x02 \x01(\r\x12\x12\n\x06sd_req\x18\x03 \x03(\rB\x02\x10\x01\x12\x19\n\x04type\x18\x04 \x01(\x0e\x32\x0b.dfu.FwType\x12\x0f\n\x07sd_size\x18\x05 \x01(\r\x12\x0f\n\x07\x62l_size\x18\x06 \x01(\r\x12\x10\n\x08\x61pp_size\x18\x07 \x01(\r\x12\x17\n\x04hash\x18\x08 \x01(\x0b\x32\t.dfu.Hash\x12\x17\n\x08is_debug\x18\t \x01(\x08:\x05\x66\x61lse\x12,\n\x0f\x62oot_validation\x18\n \x03(\x0b\x32\x13.dfu.BootValidation\x12\x16\n\x07\x63ompany\x18\x0b \x02(\tB\x05\x92?\x02\x08\x08\x12\x19\n\nmodel_name\x18\x0c \x02(\tB\x05\x92?\x02\x08\x10\"\x1f\n\x0cResetCommand\x12\x0f\n\x07timeout\x18\x01 \x02(\r\"i\n\x07\x43ommand\x12\x1c\n\x07op_code\x18\x01 \x01(\x0e\x32\x0b.dfu.OpCode\x12\x1e\n\x04init\x18\x02 \x01(\x0b\x32\x10.dfu.InitCommand\x12 \n\x05reset\x18\x03 \x01(\x0b\x32\x11.dfu.ResetCommand\"m\n\rSignedCommand\x12\x1d\n\x07\x63ommand\x18\x01 \x02(\x0b\x32\x0c.dfu.Command\x12*\n\x0esignature_type\x18\x02 \x02(\x0e\x32\x12.dfu.SignatureType\x12\x11\n\tsignature\x18\x03 \x02(\x0c\"S\n\x06Packet\x12\x1d\n\x07\x63ommand\x18\x01 \x01(\x0b\x32\x0c.dfu.Command\x12*\n\x0esigned_command\x18\x02 \x01(\x0b\x32\x12.dfu.SignedCommand*\x1d\n\x06OpCode\x12\t\n\x05RESET\x10\x00\x12\x08\n\x04INIT\x10\x01*n\n\x06\x46wType\x12\x0f\n\x0b\x41PPLICATION\x10\x00\x12\x0e\n\nSOFTDEVICE\x10\x01\x12\x0e\n\nBOOTLOADER\x10\x02\x12\x19\n\x15SOFTDEVICE_BOOTLOADER\x10\x03\x12\x18\n\x14\x45XTERNAL_APPLICATION\x10\x04*D\n\x08HashType\x12\x0b\n\x07NO_HASH\x10\x00\x12\x07\n\x03\x43RC\x10\x01\x12\n\n\x06SHA128\x10\x02\x12\n\n\x06SHA256\x10\x03\x12\n\n\x06SHA512\x10\x04*t\n\x0eValidationType\x12\x11\n\rNO_VALIDATION\x10\x00\x12\x1a\n\x16VALIDATE_GENERATED_CRC\x10\x01\x12\x13\n\x0fVALIDATE_SHA256\x10\x02\x12\x1e\n\x1aVALIDATE_ECDSA_P256_SHA256\x10\x03*3\n\rSignatureType\x12\x15\n\x11\x45\x43\x44SA_P256_SHA256\x10\x00\x12\x0b\n\x07\x45\x44\x32\x35\x35\x31\x39\x10\x01'
   ,
   dependencies=[nanopb__pb2.DESCRIPTOR,])
 
@@ -45,8 +45,8 @@ _OPCODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=774,
-  serialized_end=803,
+  serialized_start=798,
+  serialized_end=827,
 )
 _sym_db.RegisterEnumDescriptor(_OPCODE)
 
@@ -86,8 +86,8 @@ _FWTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=805,
-  serialized_end=915,
+  serialized_start=829,
+  serialized_end=939,
 )
 _sym_db.RegisterEnumDescriptor(_FWTYPE)
 
@@ -127,8 +127,8 @@ _HASHTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=917,
-  serialized_end=985,
+  serialized_start=941,
+  serialized_end=1009,
 )
 _sym_db.RegisterEnumDescriptor(_HASHTYPE)
 
@@ -163,8 +163,8 @@ _VALIDATIONTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=987,
-  serialized_end=1103,
+  serialized_start=1011,
+  serialized_end=1127,
 )
 _sym_db.RegisterEnumDescriptor(_VALIDATIONTYPE)
 
@@ -189,8 +189,8 @@ _SIGNATURETYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1105,
-  serialized_end=1156,
+  serialized_start=1129,
+  serialized_end=1180,
 )
 _sym_db.RegisterEnumDescriptor(_SIGNATURETYPE)
 
@@ -373,8 +373,15 @@ _INITCOMMAND = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='model_name', full_name='dfu.InitCommand.model_name', index=10,
+      name='company', full_name='dfu.InitCommand.company', index=10,
       number=11, type=9, cpp_type=9, label=2,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=b'\222?\002\010\010', file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='model_name', full_name='dfu.InitCommand.model_name', index=11,
+      number=12, type=9, cpp_type=9, label=2,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -392,7 +399,7 @@ _INITCOMMAND = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=161,
-  serialized_end=436,
+  serialized_end=460,
 )
 
 
@@ -423,8 +430,8 @@ _RESETCOMMAND = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=438,
-  serialized_end=469,
+  serialized_start=462,
+  serialized_end=493,
 )
 
 
@@ -469,8 +476,8 @@ _COMMAND = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=471,
-  serialized_end=576,
+  serialized_start=495,
+  serialized_end=600,
 )
 
 
@@ -515,8 +522,8 @@ _SIGNEDCOMMAND = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=578,
-  serialized_end=687,
+  serialized_start=602,
+  serialized_end=711,
 )
 
 
@@ -554,8 +561,8 @@ _PACKET = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=689,
-  serialized_end=772,
+  serialized_start=713,
+  serialized_end=796,
 )
 
 _HASH.fields_by_name['hash_type'].enum_type = _HASHTYPE
@@ -635,5 +642,6 @@ _sym_db.RegisterMessage(Packet)
 
 
 _INITCOMMAND.fields_by_name['sd_req']._options = None
+_INITCOMMAND.fields_by_name['company']._options = None
 _INITCOMMAND.fields_by_name['model_name']._options = None
 # @@protoc_insertion_point(module_scope)

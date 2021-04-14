@@ -202,7 +202,7 @@ BOOT_VALIDATION_ARGS = [
     'VALIDATE_GENERATED_SHA256',
     'VALIDATE_ECDSA_P256_SHA256',
 ]
-DEFAULT_BOOT_VALIDATION = 'VALIDATE_GENERATED_CRC'
+DEFAULT_BOOT_VALIDATION = 'VALIDATE_GENERATED_SHA256'
 
 KEY_CHOICE = ['pk', 'sk']
 KEY_FORMAT = [
@@ -590,8 +590,13 @@ def pkg():
               help='The private (signing) key in PEM format.',
               required=False,
               type=click.Path(exists=True, resolve_path=True, file_okay=True, dir_okay=False))
+@click.option('--company',
+              help='Init Packet Company',
+              required=False,
+              default="passtech",
+              type=click.STRING)
 @click.option('--model_name',
-              help='Passtech Device Model Name',
+              help='Init Packet Model Name',
               required=True,
               type=click.STRING)
 @click.option('--external-app',
@@ -644,6 +649,7 @@ def generate(zipfile,
            sd_boot_validation,
            app_boot_validation,
            key_file,
+           company,
            model_name,
            external_app,
            zigbee,
@@ -881,6 +887,7 @@ def generate(zipfile,
                       bootloader_version,
                       sd_req_list,
                       sd_id_list,
+                      company,
                       model_name,
                       application,
                       bootloader,

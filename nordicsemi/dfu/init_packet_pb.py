@@ -81,6 +81,7 @@ class InitPacketPB:
                  app_size=0,
                  bl_size=0,
                  sd_req=None,
+                 company=None,
                  model_name=None
                  ):
 
@@ -120,6 +121,7 @@ class InitPacketPB:
             self.init_command.sd_size = sd_size
             self.init_command.bl_size = bl_size
             self.init_command.app_size = app_size
+            self.init_command.company = company
             self.init_command.model_name = model_name
 
             self.init_command.boot_validation.extend(boot_validation)

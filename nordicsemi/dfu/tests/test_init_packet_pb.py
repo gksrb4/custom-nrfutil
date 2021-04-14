@@ -52,6 +52,7 @@ SD_SIZE = 0x11
 APP_SIZE = 0x233
 BL_SIZE = 0x324
 MODEL_NAME = 'PT200TWR'
+COMPANY = "passtech"
 
 
 class TestPackage(unittest.TestCase):
@@ -65,7 +66,7 @@ class TestPackage(unittest.TestCase):
         init_command_serialized = InitPacketPB(hash_bytes=HASH_BYTES_B, hash_type=HASH_TYPE,
                                                dfu_type=DFU_TYPE, sd_req=SD_REQ_A, fw_version=FIRMWARE_VERSION_A,
                                                hw_version=HARDWARE_VERSION_A, sd_size=SD_SIZE, app_size=APP_SIZE,
-                                               bl_size=BL_SIZE, model_name=MODEL_NAME).get_init_command_bytes()
+                                               bl_size=BL_SIZE, company=COMPANY, model_name=MODEL_NAME).get_init_command_bytes()
 
         init_command = pb.InitCommand()
         init_command.ParseFromString(init_command_serialized)
@@ -79,6 +80,7 @@ class TestPackage(unittest.TestCase):
         self.assertEqual(init_command.sd_size, SD_SIZE)
         self.assertEqual(init_command.bl_size, BL_SIZE)
         self.assertEqual(init_command.sd_req, SD_REQ_A)
+        self.assertEqual(init_command.company, COMPANY)
         self.assertEqual(init_command.model_name, MODEL_NAME)
 
     def test_init_command_wrong_size(self):
