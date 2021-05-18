@@ -138,7 +138,7 @@ class DfuFileTransfer():
 
 if __name__ == '__main__':
     print("DfuFileTransfer")
-    file_path = 'pkgs/nrf52_dfu_default.zip'
+    file_path = 'pkgs/nrf52840_test.zip'
     dft = DfuFileTransfer(host="192.168.0.150")
     dft.skip_login_msg();
     with open(file_path, 'rb') as f:

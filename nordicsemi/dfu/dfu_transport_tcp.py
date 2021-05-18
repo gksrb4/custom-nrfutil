@@ -114,12 +114,22 @@ class DFUAdapter:
         return decoded_data
 
 class DfuTransportTCP(DfuTransport):
+    DFU_TCPIP_TRIGGER_REQ_CMD =            0x2323
+    DFU_TCPIP_TRIGGER_RESP_CMD =           0x2324
+    DFU_TCPIP_TRIGGER_SUB_CMD =            0xDEAD
+    DFU_TCPIP_TRIGGER_RET_BOOT =           0x0001
+    DFU_TCPIP_DFU_FILE_REQ_CMD =           0x3434
+    DFU_TCPIP_DFU_FILE_RESP_CMD =          0x3435
+    DFU_TCPIP_DFU_FILE_SUB_CMD_START =     0xDF00
+    DFU_TCPIP_DFU_FILE_SUB_CMD_WRITE =     0xDF01
+    DFU_TCPIP_DFU_FILE_SUB_CMD_CRC_CHECK = 0xDF02
 
     DEFAULT_PORT = 5000
     DEFAULT_SOCKET_TIMEOUT = 5.0  # Timeout time for opennig socket
     DEFAULT_TIMEOUT = 10.0  # Timeout time for board response
     DEFAULT_PRN                 = 1
     DEFAULT_DO_PING = True
+    DEFAULT_TRANSFER_FILE = False
     
     OP_CODE = {
         'CreateObject'          : 0x01,
@@ -140,7 +150,8 @@ class DfuTransportTCP(DfuTransport):
                  socket_timeout=DEFAULT_SOCKET_TIMEOUT,
                  timeout=DEFAULT_TIMEOUT,
                  prn=DEFAULT_PRN,
-                 do_ping=DEFAULT_DO_PING):
+                 do_ping=DEFAULT_DO_PING,
+                 transfer_file=DEFAULT_TRANSFER_FILE):
 
         super().__init__()
         self.host = host
@@ -155,6 +166,7 @@ class DfuTransportTCP(DfuTransport):
 
         self.dfu_adapter = None
         self.client_socket = None
+        self.transfer_file = transfer_file
         # self.socket = None
         """:type: serial.Serial """
 
@@ -164,10 +176,15 @@ class DfuTransportTCP(DfuTransport):
         try:
             print('open client socket.')
             self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.client_socket.settimeout(1.0)
-            self.client_socket.connect((self.host, self.port))
-            self.__ensure_bootloader()
-            self.client_socket.settimeout(self.socket_timeout)
+            if not self.transfer_file:
+                self.client_socket.settimeout(1.0)
+                self.client_socket.connect((self.host, self.port))
+                self.__ensure_bootloader()
+                self.client_socket.settimeout(self.socket_timeout)
+            else:
+                self.client_socket.settimeout(self.socket_timeout)
+                self.client_socket.connect((self.host, self.port))
+                self.__transfer_file()
             self.dfu_adapter = DFUAdapter(self.client_socket)
         except Exception as e:
             raise NordicSemiException("TCP/IP socket could not be opened. Reason: {}".format(e))
@@ -276,60 +293,133 @@ class DfuTransportTCP(DfuTransport):
                 raise NordicSemiException("Failed to send firmware")
 
             self._send_event(event_type=DfuEvent.PROGRESS_EVENT, progress=len(data))
+    
+    def __print_data(self, data):
+        print(self.__get_data_str(data))
 
-    def __send_dfu_trigger_msg(self):
+    def pop(self, bs:bytearray, sz:int, order='little'):
+        if order == 'little':
+            fmt = '<'
+        else:
+            fmt = '>'
+        if sz == 1:
+            fmt += 'B'
+        elif sz == 2:
+            fmt += 'H'
+        elif sz == 4:
+            fmt += 'I'
+        elif sz == 8:
+            fmt += 'Q'
+        else:
+            raise Exception('Pop Size Error')
+        tup = struct.unpack(fmt, bs[:sz])
+        for i in range(sz): _ = bs.pop(0)
+        return tup[0]
+    
+    def __get_data_str(self, data):
+        s = ''
+        for d in data:
+            s += f'{d:02X} '
+        return s
+    
+    def _make_packet_msg(self, cmd:int, body=[], sub_cmd=None, crc_tail=True, debug=False):
         packet = bytearray()
-        packet.append(0x23)
-        packet.append(0x23)
-        packet.append(0x00)
-        packet.append(0x02)
-        packet.append(0xAD)
-        packet.append(0xDE)
+        packet += bytearray(cmd.to_bytes(2, 'big'))
+        packet_len = len(body) + (2 if sub_cmd else 0) + (4 if crc_tail else 0)
+        packet += bytearray(packet_len.to_bytes(2, 'big'))
+        if sub_cmd:
+            packet += bytearray(sub_cmd.to_bytes(2, 'little'))
+        packet += bytearray(body)
+        if crc_tail:
+            crc = (binascii.crc32(packet) & 0xFFFFFFFF)
+            packet += bytearray(crc.to_bytes(4, 'little'))
+        if debug:
+            self.__print_data(packet)
+        return packet
+    
+    def __send_dfu_trigger_msg(self):
+        packet = self._make_packet_msg(self.DFU_TCPIP_TRIGGER_REQ_CMD, 
+                sub_cmd=self.DFU_TCPIP_TRIGGER_SUB_CMD, crc_tail=False, debug=True)
         self.client_socket.sendall(bytes(packet))
-
-    def socket_rcv(self):
+    
+    def __send_dfu_file_req(self, model_name:str, file_sz:int):
+        body = bytearray()
+        if len(model_name) > 16:
+            raise Exception('Model Name Size Error')
+        model_name_buf = bytearray(16)
+        model_name_buf[:len(model_name)] = model_name.encode()
+        body += model_name_buf
+        body += bytearray(file_sz.to_bytes(4, 'little'))
+        packet = self._make_packet_msg(self.DFU_TCPIP_DFU_FILE_REQ_CMD, 
+                body=body, sub_cmd=self.DFU_TCPIP_DFU_FILE_SUB_CMD_START, debug=True)
+        self.client_socket.sendall(bytes(packet))
+    
+    def __socket_rcv(self):
         try:
             bs = self.client_socket.recv(1024)
             return (True, bs)
         except socket.timeout:
             return (False, None)
     
-    def __skip_login_msg(self):
+    def socket_rcv(self, time_out=5):
         start = datetime.now()
-        packet = None
         received = False
-        while (((datetime.now() - start) < timedelta(seconds=1)) and (not received)):
-            ret, bs = self.socket_rcv()
+        packet = None
+        while (((datetime.now() - start) < timedelta(seconds=time_out)) and (not received)):
+            ret, bs = self.__socket_rcv()
             if not ret:
                 continue
             packet = bytearray(bs)
             if len(packet) >= 2:
                 received = True
-        if (received) and (packet[0] == 0x10) and (packet[1] == 0x04):
+        return received, packet
+    
+    def __skip_login_msg(self):
+        received, packet = self.socket_rcv()
+        if (received) and ((packet[0] == 0x10) and (packet[1] == 0x04)):
             logger.info('first packet received')
         else:
             logger.info('empty first packet.')
         print('skip login msg')
     
     def __wait_trigger_msg_resp(self):
-        start = datetime.now()
-        packet = None
-        received = False
+        received, packet = self.socket_rcv()
         ret = 0xFFFF
-        while ((datetime.now() - start < timedelta(seconds=10)) and (not received)):
-            ret, bs = self.socket_rcv()
-            if not ret:
-                continue
-            packet = bytearray(bs)
-            if len(packet) >= 6:
-                received = True
-                logger.info('received dfu msg')
-                logger.log(TRANSPORT_LOGGING_LEVEL, f'packet: {packet}')
-        if received and packet[0] == 0x23 and packet[1] == 0x24 \
-          and packet[2] == 0x00 and packet[3] == 0x02:
-            ret = ((packet[5] << 8) | packet[4])
+        if not received:
+            return (received, ret)
+        logger.info('received dfu msg')
+        logger.log(TRANSPORT_LOGGING_LEVEL, f'packet: {packet}')
+        if len(packet) < 6:
+            logger.error(f'failed packet size: {len(packet)}')
+            raise Exception(f'Packet Length Error: {len(packet)}')
+        cmd = self.pop(packet, 2, 'big')
+        if cmd != self.DFU_TCPIP_TRIGGER_RESP_CMD:
+            raise Exception(f'Packet CMD Error: {cmd:04X}')
+        plen = self.pop(packet, 2, 'big')
+        if plen != 2:
+            raise Exception(f'Packet Len Error: {plen}')
+        ret = self.pop(packet, 2)
         return (received, ret)
-
+    
+    def __wait_transfer_file_msg_resp(self):
+        received, packet = self.socket_rcv()
+        ret = 0xFFFF
+        if not received:
+            return (received, ret)
+        logger.info('received dfu msg')
+        logger.log(TRANSPORT_LOGGING_LEVEL, f'packet: {packet}')
+        if len(packet) < 6:
+            logger.error(f'failed packet size: {len(packet)}')
+            raise Exception(f'Packet Length Error: {len(packet)}')
+        cmd = self.pop(packet, 2, 'big')
+        if cmd != self.DFU_TCPIP_DFU_FILE_RESP_CMD:
+            raise Exception(f'Packet CMD Error: {cmd:04X}')
+        plen = self.pop(packet, 2, 'big')
+        if plen != 2:
+            raise Exception(f'Packet Len Error: {plen}')
+        ret = self.pop(packet, 2)
+        return (received, ret)
+    
     def __waiting_dfu_msg(self):
         received, ret = self.__wait_trigger_msg_resp()
         if not received:
@@ -342,6 +432,15 @@ class DfuTransportTCP(DfuTransport):
             return True
         else:
             raise NordicSemiException("Invalid Result Code.")
+
+    def __waiting_transfer_file_msg(self):
+        received, ret = self.__wait_transfer_file_msg_resp()
+        if not received:
+            raise NordicSemiException("Tcpip Dfu Trigger Failed.")
+        if ret == 0x0000:
+            return True
+        else:
+            raise NordicSemiException(f"Invalid Result Code: {ret}")
 
     def __ensure_bootloader(self):
         # waiting for skip first packet.
@@ -365,6 +464,17 @@ class DfuTransportTCP(DfuTransport):
                 raise NordicSemiException('Failed to goto bootloader mode.')
         # device in the bootloader mode.
         print("device in bootloader mode.")
+
+    def __transfer_file(self):
+        # waiting for skip first packet.
+        print('waiting for login msg.')
+        # self.client_socket.setblocking(False)
+        self.__skip_login_msg()
+        self.__send_dfu_file_req("TEST", 0x40000)
+        if not self.__waiting_transfer_file_msg():
+            # device goto bootloader mode.
+            # check device is dfu mode.
+            raise NordicSemiException('Failed to transfer a file.')
         
     def __set_prn(self):
         logger.debug("Serial: Set Packet Receipt Notification {}".format(self.prn))
@@ -519,7 +629,10 @@ class DfuTransportTCP(DfuTransport):
 
 
 if __name__ == "__main__":
-     socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-     host = "192.168.0.31"
-     port = 5000
-     socket.connect((host, port))
+    from nordicsemi.dfu.dfu import Dfu
+    print("DfuTransportTCP")
+    package = 'pkgs/nrf52840_test.zip'
+    tcp_backend = DfuTransportTCP(host="192.168.0.150", transfer_file=True)
+    dfu = Dfu(zip_file_path = package, dfu_transport = tcp_backend, connect_delay = 3)
+    dfu.dfu_send_images()
+    print("Device programmed.")

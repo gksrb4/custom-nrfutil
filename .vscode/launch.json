@@ -23,5 +23,15 @@
             "console": "integratedTerminal",
             "python":"${command:python.interpreterPath}",
         }
+        },
+        {
+            "name": "run dfu-transport-tcp",
+            "type": "python",
+            "request": "launch",
+            "program": "nordicsemi/dfu/dfu_transport_tcp.py",
+            "args": [],
+            "console": "integratedTerminal",
+            "python":"${command:python.interpreterPath}",
+        }
     ]
 }
