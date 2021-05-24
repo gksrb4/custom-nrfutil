@@ -7,7 +7,7 @@ ipaddress==1.0.22
 libusb1==1.7.1
 pc-ble-driver-py==0.14.2
 piccata==2.0.1
-protobuf==3.10.0
+protobuf==3.15.7
 pyserial==3.4
 pyspinel==1.0.0a3
 PyYAML==5.1.2

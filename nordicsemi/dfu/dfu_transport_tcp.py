@@ -630,9 +630,14 @@ class DfuTransportTCP(DfuTransport):
 
 if __name__ == "__main__":
     from nordicsemi.dfu.dfu import Dfu
+    start = time.time()
     print("DfuTransportTCP")
-    package = 'pkgs/nrf52840_test.zip'
-    tcp_backend = DfuTransportTCP(host="192.168.0.150", transfer_file=True)
-    dfu = Dfu(zip_file_path = package, dfu_transport = tcp_backend, connect_delay = 3)
-    dfu.dfu_send_images()
+    try:
+        package = 'pkgs/nrf52840_test.zip'
+        tcp_backend = DfuTransportTCP(host="192.168.0.150", transfer_file=True)
+        dfu = Dfu(zip_file_path = package, dfu_transport = tcp_backend, connect_delay = 3)
+        dfu.dfu_send_images()
+    except Exception as e:
+        print(f'Exception: {e}')
+    print(f'End time: {time.time()-start} s')
     print("Device programmed.")
