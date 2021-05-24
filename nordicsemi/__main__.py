@@ -283,6 +283,14 @@ def settings():
 @click.option('--application-version-string',
               help='The application version string, e.g. "2.7.31". Will be converted to an integer, e.g. 207031.',
               type=click.STRING)
+@click.option('--model-name',
+              help='The model name of the application.',
+              type=click.STRING)
+@click.option('--company',
+              help='The company of the application.',
+              required=False,
+              default="passtech",
+              type=click.STRING)
 @click.option('--bootloader-version',
               help='The bootloader version.',
               type=BASED_INT_OR_NONE,
@@ -291,7 +299,8 @@ def settings():
               help='The Bootloader settings version.'
               'Defined in nrf_dfu_types.h, the following apply to released SDKs:'
               '\n|SDK12.0.0 - SDK15.2.0|1|'
-              '\n|SDK15.3.0 -          |2|',
+              '\n|SDK15.3.0 -          |2|'
+              '\n|Passtech Custom -    |100|',
               type=BASED_INT_OR_NONE,
               required=True)
 @click.option('--start-address',
@@ -332,6 +341,8 @@ def generate(hex_file,
              application,
              application_version,
              application_version_string,
+             model_name,
+             company,
              bootloader_version,
              bl_settings_version,
              start_address,
@@ -341,7 +352,6 @@ def generate(hex_file,
              sd_boot_validation,
              softdevice,
              key_file):
-
     # The user can specify the application version with two different
     # formats. As an integer, e.g. 102130, or as a string
     # "10.21.30". Internally we convert to integer.
@@ -390,7 +400,10 @@ def generate(hex_file,
 
     if sd_boot_validation and not softdevice:
         raise click.UsageError("--softdevice hex file must be set when using --sd_boot_validation")
-
+    
+    if bl_settings_version == 100 and model_name is None:
+        raise click.UsageError("--bl_settings_version bl settings version=100, model_name should be necessary")
+    
     # Default boot validation cases
     if app_boot_validation is None and application is not None and bl_settings_version == 2:
         app_boot_validation = DEFAULT_BOOT_VALIDATION
@@ -401,7 +414,7 @@ def generate(hex_file,
     sett.generate(arch=family, app_file=application, app_ver=application_version_internal, bl_ver=bootloader_version,
                   bl_sett_ver=bl_settings_version, custom_bl_sett_addr=start_address, no_backup=no_backup,
                   backup_address=backup_address, app_boot_validation_type=app_boot_validation,
-                  sd_boot_validation_type=sd_boot_validation, sd_file=softdevice, signer=signer)
+                  sd_boot_validation_type=sd_boot_validation, sd_file=softdevice, signer=signer, company=company, model_name=model_name)
     sett.tohexfile(hex_file)
 
     click.echo("\nGenerated Bootloader DFU settings .hex file and stored it in: {}".format(hex_file))
@@ -595,7 +608,7 @@ def pkg():
               required=False,
               default="passtech",
               type=click.STRING)
-@click.option('--model_name',
+@click.option('--model-name',
               help='Init Packet Model Name',
               required=True,
               type=click.STRING)

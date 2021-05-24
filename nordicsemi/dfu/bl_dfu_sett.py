@@ -97,6 +97,34 @@ class BLDFUSettingsStructV2:
         self.last_addr            = settings_address + 0x322
 
 
+class BLDFUSettingsStructV100:
+    '''Passtech Custom DFU Settings Structure'''
+    def __init__(self, settings_address):
+        self.bytes_count = 835 # Entire settings page
+        self.crc                  = settings_address + 0x0
+        self.sett_ver             = settings_address + 0x4
+        self.app_ver              = settings_address + 0x8
+        self.bl_ver               = settings_address + 0xC
+        self.bank_layout          = settings_address + 0x10
+        self.bank_current         = settings_address + 0x14
+        self.bank0_img_sz         = settings_address + 0x18
+        self.bank0_img_crc        = settings_address + 0x1C
+        self.bank0_bank_code      = settings_address + 0x20
+        self.sd_sz                = settings_address + 0x34
+        self.init_cmd             = settings_address + 0x5C
+
+        self.boot_validataion_crc = settings_address + 0x25C
+        self.sd_validation_type   = settings_address + 0x260
+        self.sd_validation_bytes  = settings_address + 0x261
+        self.app_validation_type  = settings_address + 0x2A1
+        self.app_validation_bytes = settings_address + 0x2A2
+
+        self.company              = settings_address + 0x322
+        self.model_name           = settings_address + 0x332
+
+        self.last_addr            = settings_address + 0x342
+
+
 class BLDFUSettings:
     """ Class to abstract a bootloader and its settings """
 
@@ -157,8 +185,17 @@ class BLDFUSettings:
     def _add_value_tohex(self, addr, value, format='<I'):
         self.ihex.puts(addr, struct.pack(format, value))
 
+    def _add_str_tohex(self, addr, string, format='<s'):
+        _bs = str.encode(string)
+        self.ihex.puts(addr, struct.pack(format, _bs))
+
     def _get_value_fromhex(self, addr, size=4, format='<I'):
         return struct.unpack(format, self.ihex.gets(addr, size))[0] & 0xffffffff
+
+    def _get_str_fromhex(self, addr, size=16, format='<s'):
+        _bs = self.ihex.gets(addr, size)
+        _str = _bs.decode()
+        return struct.unpack(format, _str)
 
     def _calculate_crc32_from_hex(self, ih_object, start_addr=None, end_addr=None):
         list = []
@@ -173,7 +210,7 @@ class BLDFUSettings:
         return binascii.crc32(bytearray(list)) & 0xFFFFFFFF
 
     def generate(self, arch, app_file, app_ver, bl_ver, bl_sett_ver, custom_bl_sett_addr, no_backup,
-                 backup_address, app_boot_validation_type, sd_boot_validation_type, sd_file, signer):
+                 backup_address, app_boot_validation_type, sd_boot_validation_type, sd_file, signer, company, model_name):
 
         self.set_arch(arch)
 
@@ -184,6 +221,8 @@ class BLDFUSettings:
             self.setts = BLDFUSettingsStructV1(self.bl_sett_addr)
         elif bl_sett_ver == 2:
             self.setts = BLDFUSettingsStructV2(self.bl_sett_addr)
+        elif bl_sett_ver == 100:
+            self.setts = BLDFUSettingsStructV100(self.bl_sett_addr)
         else:
             raise NordicSemiException("Unknown bootloader settings version")
 
@@ -194,6 +233,16 @@ class BLDFUSettings:
             self.app_ver = app_ver & 0xffffffff
         else:
             self.app_ver = 0x0 & 0xffffffff
+        
+        if self.bl_sett_ver == 100:
+            if company and len(company) <= 16:
+                self.company = company
+            else:
+                raise NordicSemiException(f"Company [{company}][{len(company)}] argument error.")
+            if model_name and len(model_name) <= 16:
+                self.model_name = model_name
+            else:
+                raise NordicSemiException(f"Model name [{model_name}][{len(model_name)}] argument error.")
 
         if app_file is not None:
             # load application to find out size and CRC
@@ -290,13 +339,15 @@ class BLDFUSettings:
         self._add_value_tohex(self.setts.sd_sz, self.sd_sz)
 
         self.boot_validation_crc = 0x0 & 0xffffffff
-        if self.bl_sett_ver == 2:
+        if self.bl_sett_ver == 2 or self.bl_sett_ver == 100:
             self._add_value_tohex(self.setts.sd_validation_type, self.sd_boot_validation_type, '<b')
             self.ihex.puts(self.setts.sd_validation_bytes, self.sd_boot_validation_bytes)
 
             self._add_value_tohex(self.setts.app_validation_type, self.app_boot_validation_type, '<b')
             self.ihex.puts(self.setts.app_validation_bytes, self.app_boot_validation_bytes)
-
+            if self.bl_sett_ver == 100:
+                self._add_str_tohex(self.setts.company, self.company)
+                self._add_str_tohex(self.setts.model_name, self.model_name)
             self.boot_validation_crc = self._calculate_crc32_from_hex(self.ihex,
                                                                       start_addr=self.setts.sd_validation_type,
                                                                       end_addr=self.setts.last_addr) & 0xffffffff
@@ -328,6 +379,8 @@ class BLDFUSettings:
             self.setts = BLDFUSettingsStructV1(base)
         elif ver == 2:
             self.setts = BLDFUSettingsStructV2(base)
+        elif ver == 100:
+            self.setts = BLDFUSettingsStructV100(base)
         else:
             raise RuntimeError("Unknown Bootloader DFU settings version: {0}".format(ver))
 
@@ -349,11 +402,14 @@ class BLDFUSettings:
         self.app_crc         = self._get_value_fromhex(self.setts.bank0_img_crc)
         self.bank0_bank_code = self._get_value_fromhex(self.setts.bank0_bank_code)
 
-        if self.bl_sett_ver == 2:
+        if self.bl_sett_ver == 2 or self.bl_sett_ver == 100:
             self.sd_sz                    = self._get_value_fromhex(self.setts.sd_sz)
             self.boot_validation_crc      = self._get_value_fromhex(self.setts.boot_validataion_crc)
             self.sd_boot_validation_type  = self._get_value_fromhex(self.setts.sd_validation_type, size=1, format='<b')
             self.app_boot_validation_type = self._get_value_fromhex(self.setts.app_validation_type, size=1, format='<b')
+            if self.bl_sett_ver == 100:
+                self.company     = self._get_str_fromhex(self.setts.company)
+                self.model_name  = self._get_str_fromhex(self.setts.model_name)
         else:
             self.sd_sz                    = 0x0 & 0xffffffff
             self.boot_validation_crc      = 0x0 & 0xffffffff
@@ -409,9 +465,11 @@ Bootloader DFU Settings:
 * Boot Validation CRC:      0x{13:08X}
 * SD Boot Validation Type:  0x{14:08X} ({14})
 * App Boot Validation Type: 0x{15:08X} ({15})
+* Company:                  {16}
+* Model Name:               {17}
 """.format(self.hex_file, self.arch_str, self.bl_sett_addr, self.crc, self.bl_sett_ver, self.app_ver,
            self.bl_ver, self.bank_layout, self.bank_current, self.app_sz, self.app_crc, self.bank0_bank_code,
-           self.sd_sz, self.boot_validation_crc, self.sd_boot_validation_type, self.app_boot_validation_type)
+           self.sd_sz, self.boot_validation_crc, self.sd_boot_validation_type, self.app_boot_validation_type, self.company, self.model_name)
         return s
 
     def tohexfile(self, f):
