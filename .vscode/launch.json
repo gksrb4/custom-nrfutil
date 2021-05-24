@@ -22,7 +22,6 @@
              "--hw-version", "52", "--key-file", "d:/03.Git/LOCKER_FW/nRF_MAIN/SOURCE/project/99.firm_pkg/private.pem", "--model_name", "PT400TR", "nrf52_PT400TR.zip"],
             "console": "integratedTerminal",
             "python":"${command:python.interpreterPath}",
-        }
         },
         {
             "name": "run dfu-transport-tcp",
@@ -32,6 +31,15 @@
             "args": [],
             "console": "integratedTerminal",
             "python":"${command:python.interpreterPath}",
-        }
+        },
+        {
+            "name": "run display settings",
+            "type": "python",
+            "request": "launch",
+            "program": "nordicsemi/__main__.py",
+            "args": ["settings", "display", "d:\\03.Git\\MY_GIT\\PC-NRFUTIL\\test_bl_setting.hex"],
+            "console": "integratedTerminal",
+            "python":"${command:python.interpreterPath}",
+        },
     ]
 }

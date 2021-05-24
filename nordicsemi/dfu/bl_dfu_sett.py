@@ -99,6 +99,7 @@ class BLDFUSettingsStructV2:
 
 class BLDFUSettingsStructV100:
     '''Passtech Custom DFU Settings Structure'''
+    
     def __init__(self, settings_address):
         self.bytes_count = 835 # Entire settings page
         self.crc                  = settings_address + 0x0
@@ -136,6 +137,8 @@ class BLDFUSettings:
     bl_sett_52810_addr    = 0x0002F000
     bl_sett_52840_addr    = 0x000FF000
     bl_sett_backup_offset = 0x1000
+    company = ''
+    model_name = ''
 
     def __init__(self):
         """
