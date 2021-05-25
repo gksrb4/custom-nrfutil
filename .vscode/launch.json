@@ -37,7 +37,7 @@
             "type": "python",
             "request": "launch",
             "program": "nordicsemi/__main__.py",
-            "args": ["settings", "display", "d:\\03.Git\\MY_GIT\\PC-NRFUTIL\\test_bl_setting.hex"],
+            "args": ["settings", "display", "d:\\03.Git\\MY_GIT\\PC-NRFUTIL\\test_bl_settings.hex"],
             "console": "integratedTerminal",
             "python":"${command:python.interpreterPath}",
         },

@@ -188,17 +188,18 @@ class BLDFUSettings:
     def _add_value_tohex(self, addr, value, format='<I'):
         self.ihex.puts(addr, struct.pack(format, value))
 
-    def _add_str_tohex(self, addr, string, format='<s'):
+    def _add_str_tohex(self, addr, string, size=16):
         _bs = str.encode(string)
-        self.ihex.puts(addr, struct.pack(format, _bs))
+        _bs += b'\0' * (size - len(string))
+        self.ihex.puts(addr, _bs)
 
     def _get_value_fromhex(self, addr, size=4, format='<I'):
         return struct.unpack(format, self.ihex.gets(addr, size))[0] & 0xffffffff
 
-    def _get_str_fromhex(self, addr, size=16, format='<s'):
+    def _get_str_fromhex(self, addr, size=16):
         _bs = self.ihex.gets(addr, size)
         _str = _bs.decode()
-        return struct.unpack(format, _str)
+        return _str
 
     def _calculate_crc32_from_hex(self, ih_object, start_addr=None, end_addr=None):
         list = []
