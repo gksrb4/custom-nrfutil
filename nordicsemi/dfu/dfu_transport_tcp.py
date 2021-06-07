@@ -361,7 +361,7 @@ class DfuTransportTCP(DfuTransport):
         except socket.timeout:
             return (False, None)
     
-    def socket_rcv(self, time_out=5):
+    def socket_rcv(self, time_out=1):
         start = datetime.now()
         received = False
         packet = None
@@ -633,7 +633,7 @@ if __name__ == "__main__":
     start = time.time()
     print("DfuTransportTCP")
     try:
-        package = 'pkgs/nrf52840_test.zip'
+        package = 'pkgs/APP_NRF52840_V3.3.0_20210607T100806.zip'
         tcp_backend = DfuTransportTCP(host="192.168.0.150", transfer_file=True)
         dfu = Dfu(zip_file_path = package, dfu_transport = tcp_backend, connect_delay = 3)
         dfu.dfu_send_images()

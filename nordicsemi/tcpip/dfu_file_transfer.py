@@ -137,12 +137,14 @@ class DfuFileTransfer():
         
 
 if __name__ == '__main__':
-    print("DfuFileTransfer")
-    file_path = 'pkgs/nrf52840_test.zip'
-    dft = DfuFileTransfer(host="192.168.0.150")
-    dft.skip_login_msg();
+    # 사용안함
+    # 그냥 tcpip dfu 로 전송하기로 변경함
+    print("DfuFileTransfer-2")
+    file_path = 'pkgs/APP_NRF52840_V3.3.0_20210607T100806.zip'
+    # dft.skip_login_msg();
     with open(file_path, 'rb') as f:
         data = f.read()
+        dft = DfuFileTransfer(host="192.168.0.150")
         dft._send_dfu_file("PT200TWR", data)
         ret, data = dft.socket_rcv()
         if not ret:
