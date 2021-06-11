@@ -119,11 +119,13 @@ class BLDFUSettingsStructV100:
         self.sd_validation_bytes  = settings_address + 0x261
         self.app_validation_type  = settings_address + 0x2A1
         self.app_validation_bytes = settings_address + 0x2A2
+        self.boot_validation_type  = settings_address + 0x2E2
+        self.boot_validation_bytes = settings_address + 0x2E3
 
-        self.company              = settings_address + 0x322
-        self.model_name           = settings_address + 0x332
+        self.company              = settings_address + 0x323
+        self.model_name           = settings_address + 0x333
 
-        self.last_addr            = settings_address + 0x342
+        self.last_addr            = settings_address + 0x343
 
 
 class BLDFUSettings:
@@ -341,17 +343,15 @@ class BLDFUSettings:
         self._add_value_tohex(self.setts.bank0_img_crc, self.app_crc)
         self._add_value_tohex(self.setts.bank0_bank_code, self.bank0_bank_code)
         self._add_value_tohex(self.setts.sd_sz, self.sd_sz)
-
+        if self.bl_sett_ver == 100:
+            self._add_str_tohex(self.setts.company, self.company)
+            self._add_str_tohex(self.setts.model_name, self.model_name)
         self.boot_validation_crc = 0x0 & 0xffffffff
         if self.bl_sett_ver == 2 or self.bl_sett_ver == 100:
             self._add_value_tohex(self.setts.sd_validation_type, self.sd_boot_validation_type, '<b')
             self.ihex.puts(self.setts.sd_validation_bytes, self.sd_boot_validation_bytes)
-
             self._add_value_tohex(self.setts.app_validation_type, self.app_boot_validation_type, '<b')
             self.ihex.puts(self.setts.app_validation_bytes, self.app_boot_validation_bytes)
-            if self.bl_sett_ver == 100:
-                self._add_str_tohex(self.setts.company, self.company)
-                self._add_str_tohex(self.setts.model_name, self.model_name)
             self.boot_validation_crc = self._calculate_crc32_from_hex(self.ihex,
                                                                       start_addr=self.setts.sd_validation_type,
                                                                       end_addr=self.setts.last_addr) & 0xffffffff

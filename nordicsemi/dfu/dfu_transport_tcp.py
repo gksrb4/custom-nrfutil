@@ -125,7 +125,7 @@ class DfuTransportTCP(DfuTransport):
     DFU_TCPIP_DFU_FILE_SUB_CMD_CRC_CHECK = 0xDF02
 
     DEFAULT_PORT = 5000
-    DEFAULT_SOCKET_TIMEOUT = 5.0  # Timeout time for opennig socket
+    DEFAULT_SOCKET_TIMEOUT = 10.0  # Timeout time for opennig socket
     DEFAULT_TIMEOUT = 10.0  # Timeout time for board response
     DEFAULT_PRN                 = 1
     DEFAULT_DO_PING = True
@@ -173,21 +173,21 @@ class DfuTransportTCP(DfuTransport):
 
     def open(self):
         super().open()
+        start = time.time()
         try:
             print('open client socket.')
             self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.client_socket.settimeout(self.socket_timeout)
             if not self.transfer_file:
-                self.client_socket.settimeout(1.0)
                 self.client_socket.connect((self.host, self.port))
                 self.__ensure_bootloader()
-                self.client_socket.settimeout(self.socket_timeout)
             else:
-                self.client_socket.settimeout(self.socket_timeout)
                 self.client_socket.connect((self.host, self.port))
                 self.__transfer_file()
             self.dfu_adapter = DFUAdapter(self.client_socket)
         except Exception as e:
-            raise NordicSemiException("TCP/IP socket could not be opened. Reason: {}".format(e))
+            end = time.time()
+            raise NordicSemiException("TCP/IP socket could not be opened. Reason: {}, waiting secs: {}".format(e, end-start))
 
         if self.do_ping:
             ping_success = False
@@ -205,6 +205,7 @@ class DfuTransportTCP(DfuTransport):
 
     def close(self):
         super().close()
+        print('close client socket.')
         self.client_socket.close()
 
     def jump_from_buttonless_mode_to_bootloader(self):
@@ -633,11 +634,15 @@ if __name__ == "__main__":
     start = time.time()
     print("DfuTransportTCP")
     try:
-        package = 'pkgs/APP_NRF52840_V3.3.0_20210607T100806.zip'
-        tcp_backend = DfuTransportTCP(host="192.168.0.150", transfer_file=True)
+        # package = 'pkgs/FULL_NRF52840_V3.3.0_20210610T145523.zip'
+        # package = 'pkgs/FULL_NRF52840_AP300_V2.0.2_20210611T173815.zip'
+        package = 'pkgs/APP_NRF52840_AP300_V2.0.2_20210611T175005.zip'
+        # package = 'pkgs/APP_NRF52840_V3.3.0_20210607T100806.zip'
+        tcp_backend = DfuTransportTCP(host="192.168.0.150", transfer_file=False)
         dfu = Dfu(zip_file_path = package, dfu_transport = tcp_backend, connect_delay = 3)
         dfu.dfu_send_images()
+        print(f'End time: {time.time()-start} s')
+        print("Device programmed.")
     except Exception as e:
         print(f'Exception: {e}')
-    print(f'End time: {time.time()-start} s')
-    print("Device programmed.")
+    print("Module End")
