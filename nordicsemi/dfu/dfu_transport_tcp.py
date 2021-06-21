@@ -636,9 +636,10 @@ if __name__ == "__main__":
     try:
         # package = 'pkgs/FULL_NRF52840_V3.3.0_20210610T145523.zip'
         # package = 'pkgs/FULL_NRF52840_AP300_V2.0.2_20210611T173815.zip'
-        package = 'pkgs/APP_NRF52840_AP300_V2.0.2_20210611T175005.zip'
+        # package = 'pkgs/APP_NRF52840_AP300_V2.0.2_20210611T175005.zip'
         # package = 'pkgs/APP_NRF52840_V3.3.0_20210607T100806.zip'
-        tcp_backend = DfuTransportTCP(host="192.168.0.150", transfer_file=False)
+        package = 'pkgs/APP_NRF52840_PT200_V3.3.0_20210614T142358.zip'
+        tcp_backend = DfuTransportTCP(host="192.168.0.150", transfer_file=True)
         dfu = Dfu(zip_file_path = package, dfu_transport = tcp_backend, connect_delay = 3)
         dfu.dfu_send_images()
         print(f'End time: {time.time()-start} s')

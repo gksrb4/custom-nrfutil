@@ -95,6 +95,7 @@ class BLDFUSettingsStructV2:
         self.app_validation_bytes = settings_address + 0x2A2
 
         self.last_addr            = settings_address + 0x322
+        self.validation_last_addr = self.last_addr
 
 
 class BLDFUSettingsStructV100:
@@ -126,6 +127,7 @@ class BLDFUSettingsStructV100:
         self.model_name           = settings_address + 0x333
 
         self.last_addr            = settings_address + 0x343
+        self.validation_last_addr = self.company - 1 # settings_address + 0x322
 
 
 class BLDFUSettings:
@@ -354,7 +356,7 @@ class BLDFUSettings:
             self.ihex.puts(self.setts.app_validation_bytes, self.app_boot_validation_bytes)
             self.boot_validation_crc = self._calculate_crc32_from_hex(self.ihex,
                                                                       start_addr=self.setts.sd_validation_type,
-                                                                      end_addr=self.setts.last_addr) & 0xffffffff
+                                                                      end_addr=self.setts.validation_last_addr) & 0xffffffff
             self._add_value_tohex(self.setts.boot_validataion_crc, self.boot_validation_crc)
 
         self.crc = self._calculate_crc32_from_hex(self.ihex,
