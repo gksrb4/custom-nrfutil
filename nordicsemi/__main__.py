@@ -1117,7 +1117,15 @@ def serial(package, port, connect_delay, flow_control, packet_receipt_notificati
               help='Set the timeout in seconds for board to respond (default: 30 seconds)',
               type=click.INT,
               required=False)
-def tcp(package, ip_address, port, packet_receipt_notification, timeout):
+@click.option('-t', '--timeout',
+              help='Set the timeout in seconds for board to respond (default: 30 seconds)',
+              type=click.INT,
+              required=False)
+@click.option('-f', '--transfer-file',
+              help='',
+              type=click.BOOL,
+              required=False)
+def tcp(package, ip_address, port, packet_receipt_notification, timeout, transfer_file):
     """Perform a Device Firmware Update on a device with a bootloader that supports Tcp/ip DFU."""
     if package is None:
         root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -1129,12 +1137,13 @@ def tcp(package, ip_address, port, packet_receipt_notification, timeout):
     ping = DfuTransportTCP.DEFAULT_DO_PING
     if timeout is None:
         timeout = DfuTransportTCP.DEFAULT_TIMEOUT
-
+    if transfer_file is None:
+        transfer_file = False
     logger.info(f'connect to ip: {ip_address}, port: {port}')
     # TODO: add socket_timeout
     tcp_backend = DfuTransportTCP(host=ip_address, port=port,
                                         prn=packet_receipt_notification, do_ping=ping,
-                                        timeout=timeout)
+                                        timeout=timeout, transfer_file=transfer_file)
     tcp_backend.register_events_callback(DfuEvent.PROGRESS_EVENT, update_progress)
     dfu = Dfu(zip_file_path = package, dfu_transport = tcp_backend, connect_delay = 3)
 

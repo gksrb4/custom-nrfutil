@@ -1,6 +1,7 @@
 # modified by dfu_transport_serial.py
 
 # Python imports
+from os import truncate
 import time
 from datetime import datetime, timedelta
 import binascii
@@ -125,7 +126,7 @@ class DfuTransportTCP(DfuTransport):
     DFU_TCPIP_DFU_FILE_SUB_CMD_CRC_CHECK = 0xDF02
 
     DEFAULT_PORT = 5000
-    DEFAULT_SOCKET_TIMEOUT = 10.0  # Timeout time for opennig socket
+    DEFAULT_SOCKET_TIMEOUT = 2.5  # Timeout time for opennig socket
     DEFAULT_TIMEOUT = 10.0  # Timeout time for board response
     DEFAULT_PRN                 = 1
     DEFAULT_DO_PING = True
@@ -170,24 +171,43 @@ class DfuTransportTCP(DfuTransport):
         # self.socket = None
         """:type: serial.Serial """
 
+    def socket_open(self):
+        retry_cnt = 3
+        for i in range(0, retry_cnt):
+            start = time.time()
+            try:
+                print('open client socket.')
+                self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.client_socket.settimeout(self.socket_timeout)
+                self.client_socket.connect((self.host, self.port))
+                break
+            except Exception as e:
+                end = time.time()
+                print(f'try: {i} Exception: {e}')
+                if i + 1 == retry_cnt:
+                    raise NordicSemiException("TCP/IP socket could not be opened. Reason: {}, waiting secs: {}".format(e, end-start))
+
+    def ensure_dfu_mode(self):
+        retry_cnt = 3
+        for i in range(0, retry_cnt):
+            start = time.time()
+            try:
+                if not self.transfer_file:
+                    self.__ensure_bootloader()
+                else:
+                    self.__transfer_file()
+                self.dfu_adapter = DFUAdapter(self.client_socket)
+                break
+            except Exception as e:
+                print(f'ensure_dfu_mode: {i} Exception: {e}')
+                end = time.time()
+                if i + 1 == retry_cnt:
+                    raise NordicSemiException("TCP/IP ensure dfu mode is failed. Reason: {}, waiting secs: {}".format(e, end-start))
 
     def open(self):
         super().open()
-        start = time.time()
-        try:
-            print('open client socket.')
-            self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.client_socket.settimeout(self.socket_timeout)
-            if not self.transfer_file:
-                self.client_socket.connect((self.host, self.port))
-                self.__ensure_bootloader()
-            else:
-                self.client_socket.connect((self.host, self.port))
-                self.__transfer_file()
-            self.dfu_adapter = DFUAdapter(self.client_socket)
-        except Exception as e:
-            end = time.time()
-            raise NordicSemiException("TCP/IP socket could not be opened. Reason: {}, waiting secs: {}".format(e, end-start))
+        self.socket_open()
+        self.ensure_dfu_mode()
 
         if self.do_ping:
             ping_success = False
@@ -455,10 +475,7 @@ class DfuTransportTCP(DfuTransport):
             print('device goto bootloader mode.')
             self.client_socket.close()
             time.sleep(1)
-            self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.client_socket.settimeout(10.0)
-            self.client_socket.connect((self.host, self.port))
-            time.sleep(1)
+            self.socket_open()
             self.__send_dfu_trigger_msg()
             if not self.__waiting_dfu_msg():
                 print("Failed to goto bootloader mode.")
