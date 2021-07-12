@@ -115,6 +115,7 @@ class DFUAdapter:
         return decoded_data
 
 class DfuTransportTCP(DfuTransport):
+    LOGIN_REQ_CMD =                        0x1004
     DFU_TCPIP_TRIGGER_REQ_CMD =            0x2323
     DFU_TCPIP_TRIGGER_RESP_CMD =           0x2324
     DFU_TCPIP_TRIGGER_SUB_CMD =            0xDEAD
@@ -382,29 +383,32 @@ class DfuTransportTCP(DfuTransport):
         except socket.timeout:
             return (False, None)
     
-    def socket_rcv(self, time_out=1):
+    def socket_rcv(self, time_out=1, cmd=None):
         start = datetime.now()
         received = False
         packet = None
-        while (((datetime.now() - start) < timedelta(seconds=time_out)) and (not received)):
+        while ((datetime.now() - start) < timedelta(seconds=time_out)):
             ret, bs = self.__socket_rcv()
-            if not ret:
+            if not ret or len(bs) <= 4:
                 continue
             packet = bytearray(bs)
-            if len(packet) >= 2:
-                received = True
+            _cmd = (packet[0] << 8 | packet[1])
+            if cmd and _cmd != cmd:
+                continue
+            received = True
+            break
         return received, packet
     
     def __skip_login_msg(self):
-        received, packet = self.socket_rcv()
-        if (received) and ((packet[0] == 0x10) and (packet[1] == 0x04)):
+        received, packet = self.socket_rcv(cmd=self.LOGIN_REQ_CMD)
+        if received:
             logger.info('first packet received')
         else:
             logger.info('empty first packet.')
         print('skip login msg')
     
     def __wait_trigger_msg_resp(self):
-        received, packet = self.socket_rcv()
+        received, packet = self.socket_rcv(cmd=self.DFU_TCPIP_TRIGGER_RESP_CMD)
         ret = 0xFFFF
         if not received:
             return (received, ret)
@@ -467,7 +471,6 @@ class DfuTransportTCP(DfuTransport):
         # waiting for skip first packet.
         print('waiting for login msg.')
         # self.client_socket.setblocking(False)
-        self.__skip_login_msg()
         self.__send_dfu_trigger_msg()
         if not self.__waiting_dfu_msg():
             # device goto bootloader mode.
@@ -487,7 +490,6 @@ class DfuTransportTCP(DfuTransport):
         # waiting for skip first packet.
         print('waiting for login msg.')
         # self.client_socket.setblocking(False)
-        self.__skip_login_msg()
         self.__send_dfu_file_req("TEST", 0x40000)
         if not self.__waiting_transfer_file_msg():
             # device goto bootloader mode.
