@@ -172,8 +172,8 @@ class DfuTransportTCP(DfuTransport):
         # self.socket = None
         """:type: serial.Serial """
 
-    def socket_open(self):
-        retry_cnt = 3
+    def socket_open(self, retry_cnt=3, socket_timeout=None):
+        if not socket_timeout: socket_timeout = self.socket_timeout
         for i in range(0, retry_cnt):
             start = time.time()
             try:
@@ -469,7 +469,7 @@ class DfuTransportTCP(DfuTransport):
 
     def __ensure_bootloader(self):
         # waiting for skip first packet.
-        print('waiting for login msg.')
+        # print('waiting for login msg.')
         # self.client_socket.setblocking(False)
         self.__send_dfu_trigger_msg()
         if not self.__waiting_dfu_msg():
@@ -478,7 +478,7 @@ class DfuTransportTCP(DfuTransport):
             print('device goto bootloader mode.')
             self.client_socket.close()
             time.sleep(1)
-            self.socket_open()
+            self.socket_open(socket_timeout=5)
             self.__send_dfu_trigger_msg()
             if not self.__waiting_dfu_msg():
                 print("Failed to goto bootloader mode.")
