@@ -35,6 +35,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 import ipaddress
+from nordicsemi.dfu import model
 import signal
 
 """nrfutil command line tool."""
@@ -962,9 +963,19 @@ def display(zip_file):
     click.echo("{0}".format(str(package)))
 
 global_bar = None
+global_stream_result = False
+global_progress_total_length = 0
+global_progress_result = 0
 def update_progress(progress=0):
     if global_bar:
         global_bar.update(progress)
+    global global_stream_result
+    if global_stream_result:
+        global global_progress_result
+        global_progress_result += progress
+        if global_progress_total_length > 0:
+            percent = (global_progress_result/global_progress_total_length) * 100
+            print(f'{percent:.2f}', flush=True)
 
 @cli.group(short_help='Perform a Device Firmware Update over serial, BLE, Thread, Zigbee or ANT transport given a DFU package (zip file).')
 def dfu():
@@ -1117,16 +1128,22 @@ def serial(package, port, connect_delay, flow_control, packet_receipt_notificati
               help='Set the timeout in seconds for board to respond (default: 30 seconds)',
               type=click.INT,
               required=False)
-@click.option('-t', '--timeout',
-              help='Set the timeout in seconds for board to respond (default: 30 seconds)',
+@click.option('-st', '--socket-timeout',
+              help='Set the socket timeout in seconds for board to respond (default: 2.5 seconds)',
               type=click.INT,
               required=False)
 @click.option('-f', '--transfer-file',
               help='',
               type=click.BOOL,
               required=False)
-def tcp(package, ip_address, port, packet_receipt_notification, timeout, transfer_file):
+@click.option('-s', '--stream-result',
+              help='Stdout Stream Progress Result Value',
+              type=click.BOOL,
+              default=False,
+              required=False)
+def tcp(package, ip_address, port, packet_receipt_notification, timeout, socket_timeout, transfer_file, stream_result=False):
     """Perform a Device Firmware Update on a device with a bootloader that supports Tcp/ip DFU."""
+    print('test - dfu - test')
     if package is None:
         root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         package = os.path.join(root_dir, 'pkgs', 'nrf52_dfu_default.zip')
@@ -1137,23 +1154,44 @@ def tcp(package, ip_address, port, packet_receipt_notification, timeout, transfe
     ping = DfuTransportTCP.DEFAULT_DO_PING
     if timeout is None:
         timeout = DfuTransportTCP.DEFAULT_TIMEOUT
+    if socket_timeout is None:
+        timeout = DfuTransportTCP.DEFAULT_SOCKET_TIMEOUT
     if transfer_file is None:
         transfer_file = False
+    _package = Package()
+    _package.parse_package(package, preserve_work_dir=True)
+    __package_str = f'{_package}'.splitlines()
+    # print(__package_str)
+    model_name = None
+    for s in __package_str:
+        if 'model_name' in s:
+            model_name = s.split('model_name: ')[1]
+    if model_name:
+        if 'AP300' in model_name:
+            transfer_file = False
+        else:
+            transfer_file = True
+    # print(transfer_file)
+    global global_stream_result, global_progress_total_length
+    global_stream_result = stream_result
     logger.info(f'connect to ip: {ip_address}, port: {port}')
-    # TODO: add socket_timeout
     tcp_backend = DfuTransportTCP(host=ip_address, port=port,
                                         prn=packet_receipt_notification, do_ping=ping,
+                                        socket_timeout=socket_timeout,
                                         timeout=timeout, transfer_file=transfer_file)
     tcp_backend.register_events_callback(DfuEvent.PROGRESS_EVENT, update_progress)
     dfu = Dfu(zip_file_path = package, dfu_transport = tcp_backend, connect_delay = 3)
 
-    if logger.getEffectiveLevel() > logging.INFO:
+    if logger.getEffectiveLevel() > logging.INFO and not global_stream_result:
         with click.progressbar(length=dfu.dfu_get_total_size()) as bar:
             global global_bar
             global_bar = bar
             dfu.dfu_send_images()
     else:
+        if global_stream_result:
+            global_progress_total_length = dfu.dfu_get_total_size()
         dfu.dfu_send_images()
+
 
     click.echo("Device programmed.")
 

@@ -134,3 +134,4 @@ unittests.xml
 # Pyre type checker
 .pyre/
 
+pkgs/*

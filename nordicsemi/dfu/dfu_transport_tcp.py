@@ -2,6 +2,7 @@
 
 # Python imports
 from os import truncate
+from posixpath import expanduser
 import time
 from datetime import datetime, timedelta
 import binascii
@@ -82,8 +83,13 @@ class Slip:
         return (finished, current_state, decoded_data)
 
 class DFUAdapter:
-    def __init__(self, socket):
+    socket = None
+    host = None
+    port = None
+    def __init__(self, socket, host, port):
         self.socket = socket
+        self.host = host
+        self.port = port
 
     def send_message(self, data):
         packet = Slip.encode(data)
@@ -171,20 +177,23 @@ class DfuTransportTCP(DfuTransport):
         self.transfer_file = transfer_file
         # self.socket = None
         """:type: serial.Serial """
+    
+    def my_print(self, *values):
+        print(*values, flush=True)
 
     def socket_open(self, retry_cnt=3, socket_timeout=None):
         if not socket_timeout: socket_timeout = self.socket_timeout
         for i in range(0, retry_cnt):
             start = time.time()
             try:
-                print('open client socket.')
+                self.my_print('open client socket.')
                 self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.client_socket.settimeout(self.socket_timeout)
                 self.client_socket.connect((self.host, self.port))
                 break
             except Exception as e:
                 end = time.time()
-                print(f'try: {i} Exception: {e}')
+                self.my_print(f'try: {i} Exception: {e}')
                 if i + 1 == retry_cnt:
                     raise NordicSemiException("TCP/IP socket could not be opened. Reason: {}, waiting secs: {}".format(e, end-start))
 
@@ -197,10 +206,10 @@ class DfuTransportTCP(DfuTransport):
                     self.__ensure_bootloader()
                 else:
                     self.__transfer_file()
-                self.dfu_adapter = DFUAdapter(self.client_socket)
+                self.dfu_adapter = DFUAdapter(self.client_socket, self.host, self.port)
                 break
             except Exception as e:
-                print(f'ensure_dfu_mode: {i} Exception: {e}')
+                self.my_print(f'ensure_dfu_mode: {i} Exception: {e}')
                 end = time.time()
                 if i + 1 == retry_cnt:
                     raise NordicSemiException("TCP/IP ensure dfu mode is failed. Reason: {}, waiting secs: {}".format(e, end-start))
@@ -226,7 +235,7 @@ class DfuTransportTCP(DfuTransport):
 
     def close(self):
         super().close()
-        print('close client socket.')
+        self.my_print('close client socket.')
         self.client_socket.close()
 
     def jump_from_buttonless_mode_to_bootloader(self):
@@ -317,7 +326,7 @@ class DfuTransportTCP(DfuTransport):
             self._send_event(event_type=DfuEvent.PROGRESS_EVENT, progress=len(data))
     
     def __print_data(self, data):
-        print(self.__get_data_str(data))
+        self.my_print(self.__get_data_str(data))
 
     def pop(self, bs:bytearray, sz:int, order='little'):
         if order == 'little':
@@ -405,7 +414,7 @@ class DfuTransportTCP(DfuTransport):
             logger.info('first packet received')
         else:
             logger.info('empty first packet.')
-        print('skip login msg')
+        self.my_print('skip login msg')
     
     def __wait_trigger_msg_resp(self):
         received, packet = self.socket_rcv(cmd=self.DFU_TCPIP_TRIGGER_RESP_CMD)
@@ -469,26 +478,26 @@ class DfuTransportTCP(DfuTransport):
 
     def __ensure_bootloader(self):
         # waiting for skip first packet.
-        # print('waiting for login msg.')
+        # self.my_print('waiting for login msg.')
         # self.client_socket.setblocking(False)
         self.__send_dfu_trigger_msg()
         if not self.__waiting_dfu_msg():
             # device goto bootloader mode.
             # check device is dfu mode.
-            print('device goto bootloader mode.')
+            self.my_print('device goto bootloader mode.')
             self.client_socket.close()
             time.sleep(1)
             self.socket_open(socket_timeout=5)
             self.__send_dfu_trigger_msg()
             if not self.__waiting_dfu_msg():
-                print("Failed to goto bootloader mode.")
+                self.my_print("Failed to goto bootloader mode.")
                 raise NordicSemiException('Failed to goto bootloader mode.')
         # device in the bootloader mode.
-        print("device in bootloader mode.")
+        self.my_print("device in bootloader mode.")
 
     def __transfer_file(self):
         # waiting for skip first packet.
-        print('waiting for login msg.')
+        self.my_print('waiting for login msg.')
         # self.client_socket.setblocking(False)
         self.__send_dfu_file_req("TEST", 0x40000)
         if not self.__waiting_transfer_file_msg():
@@ -512,7 +521,7 @@ class DfuTransportTCP(DfuTransport):
         self.ping_id = (self.ping_id + 1) % 256
 
         self.dfu_adapter.send_message([DfuTransportSerial.OP_CODE['Ping'], self.ping_id])
-        resp = self.dfu_adapter.get_message() # Receive raw response to check return code
+        resp = self._get_message() # Receive raw response to check return code
 
         if not resp:
             logger.debug('Serial: No ping response')
@@ -617,12 +626,23 @@ class DfuTransportTCP(DfuTransport):
         response = self.__calculate_checksum()
         validate_crc()
         return crc
+    
+    def _get_message(self):
+        resp = self.dfu_adapter.get_message()
+        return resp
+        # for i in range(0, 5):
+        #     try:
+        #     except:
+        #         self.close()
+        #         self.socket_open()
+        #         self.ensure_dfu_mode()
+        # return None
 
     def __get_response(self, operation):
         def get_dict_key(dictionary, value):
             return next((key for key, val in list(dictionary.items()) if val == value), None)
 
-        resp = self.dfu_adapter.get_message()
+        resp = self._get_message()
 
         if not resp:
             return None

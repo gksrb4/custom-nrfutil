@@ -36,7 +36,11 @@
 #
 
 """ Version definition for nrfutil. """
+from datetime import datetime
+
+
 
 NRFUTIL_VERSION = "6.1.0"
 
-CUS_VERSION = "2.2.2"
+now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+CUS_VERSION = f"2.2.3 {now}"
