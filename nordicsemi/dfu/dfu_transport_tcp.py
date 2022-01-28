@@ -133,7 +133,7 @@ class DfuTransportTCP(DfuTransport):
     DFU_TCPIP_DFU_FILE_SUB_CMD_CRC_CHECK = 0xDF02
 
     DEFAULT_PORT = 5000
-    DEFAULT_SOCKET_TIMEOUT = 2.5  # Timeout time for opennig socket
+    DEFAULT_SOCKET_TIMEOUT = 5  # Timeout time for opennig socket
     DEFAULT_TIMEOUT = 10.0  # Timeout time for board response
     DEFAULT_PRN                 = 1
     DEFAULT_DO_PING = True
@@ -181,14 +181,17 @@ class DfuTransportTCP(DfuTransport):
     def my_print(self, *values):
         print(*values, flush=True)
 
-    def socket_open(self, retry_cnt=3, socket_timeout=None):
-        if not socket_timeout: socket_timeout = self.socket_timeout
+    def socket_open(self, retry_cnt=4, socket_timeout=None):
+        if socket_timeout is None:
+            socket_timeout = self.socket_timeout
+        if socket_timeout is None:
+            socket_timeout = self.DEFAULT_SOCKET_TIMEOUT
         for i in range(0, retry_cnt):
             start = time.time()
             try:
-                self.my_print('open client socket.')
+                self.my_print(f'open client socket. timeout: {socket_timeout}')
                 self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.client_socket.settimeout(self.socket_timeout)
+                self.client_socket.settimeout(socket_timeout)
                 self.client_socket.connect((self.host, self.port))
                 break
             except Exception as e:
@@ -487,7 +490,7 @@ class DfuTransportTCP(DfuTransport):
             self.my_print('device goto bootloader mode.')
             self.client_socket.close()
             time.sleep(1)
-            self.socket_open(socket_timeout=5)
+            self.socket_open(socket_timeout=2.5)
             self.__send_dfu_trigger_msg()
             if not self.__waiting_dfu_msg():
                 self.my_print("Failed to goto bootloader mode.")
