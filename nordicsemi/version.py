@@ -42,5 +42,6 @@ from datetime import datetime
 
 NRFUTIL_VERSION = "6.1.0"
 
-now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-CUS_VERSION = f"2.2.4 {now}"
+# now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+# not build time
+CUS_VERSION = f"2.3.0"

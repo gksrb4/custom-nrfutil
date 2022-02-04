@@ -985,7 +985,7 @@ def dfu():
     pass
 
 def do_serial(package, port, connect_delay, flow_control, packet_receipt_notification, baud_rate, serial_number, ping,
-              timeout):
+              timeout, stream_result=False):
 
     if flow_control is None:
         flow_control = DfuTransportSerial.DEFAULT_FLOW_CONTROL
@@ -1005,7 +1005,8 @@ def do_serial(package, port, connect_delay, flow_control, packet_receipt_notific
 
     if timeout is None:
         timeout = DfuTransportSerial.DEFAULT_TIMEOUT
-
+    global global_stream_result, global_progress_total_length
+    global_stream_result = stream_result
     logger.info("Using board at serial port: {}".format(port))
     serial_backend = DfuTransportSerial(com_port=str(port), baud_rate=baud_rate,
                                         flow_control=flow_control, prn=packet_receipt_notification, do_ping=ping,
@@ -1013,12 +1014,14 @@ def do_serial(package, port, connect_delay, flow_control, packet_receipt_notific
     serial_backend.register_events_callback(DfuEvent.PROGRESS_EVENT, update_progress)
     dfu = Dfu(zip_file_path = package, dfu_transport = serial_backend, connect_delay = connect_delay)
 
-    if logger.getEffectiveLevel() > logging.INFO:
+    if logger.getEffectiveLevel() > logging.INFO and not global_stream_result:
         with click.progressbar(length=dfu.dfu_get_total_size()) as bar:
             global global_bar
             global_bar = bar
             dfu.dfu_send_images()
     else:
+        if global_stream_result:
+            global_progress_total_length = dfu.dfu_get_total_size()
         dfu.dfu_send_images()
 
     click.echo("Device programmed.")
@@ -1058,11 +1061,16 @@ def do_serial(package, port, connect_delay, flow_control, packet_receipt_notific
               help='Set the timeout in seconds for board to respond (default: 30 seconds)',
               type=click.INT,
               required=False)
+@click.option('-s', '--stream-result',
+              help='Stdout Stream Progress Result Value',
+              type=click.BOOL,
+              default=False,
+              required=False)
 def usb_serial(package, port, connect_delay, flow_control, packet_receipt_notification, baud_rate, serial_number,
-               timeout):
+               timeout, stream_result):
     """Perform a Device Firmware Update on a device with a bootloader that supports USB serial DFU."""
     do_serial(package, port, connect_delay, flow_control, packet_receipt_notification, baud_rate, serial_number, False,
-              timeout)
+              timeout, stream_result)
 
 
 @dfu.command(short_help="Update the firmware on a device over a UART serial connection. The DFU target must be a chip using digital I/O pins as an UART.")
