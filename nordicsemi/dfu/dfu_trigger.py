@@ -85,17 +85,17 @@ else:
     abs_file_dir = abs_file_dir.replace(dfu_path, libusb_path)
     rel_import_dir = os.path.join(".", libusb_path)
 
-print(f'libusb_path: {libusb_path}')
-print(f'abs_file_dir: {abs_file_dir}')
-print(f'rel_import_dir: {rel_import_dir}')
+# print(f'libusb_path: {libusb_path}')
+# print(f'abs_file_dir: {abs_file_dir}')
+# print(f'rel_import_dir: {rel_import_dir}')
 
 for path in ['PATH', 'LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH']:
     if path not in os.environ:
         os.environ[path] = ""
     os.environ[path] = rel_import_dir + os.pathsep + abs_file_dir + os.pathsep + os.environ[path]
 
-print(f'os.environ[path]: {os.environ[path]}')
-print(f'os.path.join(abs_file_dir, "libusb-1.0.dll": {os.path.join(abs_file_dir, "libusb-1.0.dll")}')
+# print(f'os.environ[path]: {os.environ[path]}')
+# print(f'os.path.join(abs_file_dir, "libusb-1.0.dll": {os.path.join(abs_file_dir, "libusb-1.0.dll")}')
 
 class DFUTrigger:
     def __init__(self):
