@@ -105,13 +105,13 @@ class DFUAdapter:
         current_state = Slip.SLIP_STATE_DECODING
         finished = False
         decoded_data = []
-
+        
         while finished == False:
             byte = self.socket.recv(1)
             if byte:
                 (byte) = struct.unpack('B', byte)[0]
                 (finished, current_state, decoded_data) \
-                   = Slip.decode_add_byte(byte, decoded_data, current_state)
+                    = Slip.decode_add_byte(byte, decoded_data, current_state)
             else:
                 current_state = Slip.SLIP_STATE_CLEARING_INVALID_PACKET
                 return None
@@ -491,6 +491,7 @@ class DfuTransportTCP(DfuTransport):
             self.client_socket.close()
             time.sleep(1)
             self.socket_open(socket_timeout=2.5)
+            # self.socket_open()
             self.__send_dfu_trigger_msg()
             if not self.__waiting_dfu_msg():
                 self.my_print("Failed to goto bootloader mode.")
@@ -633,12 +634,14 @@ class DfuTransportTCP(DfuTransport):
     def _get_message(self):
         resp = self.dfu_adapter.get_message()
         return resp
-        # for i in range(0, 5):
+        # for _ in range(0, 5):
         #     try:
-        #     except:
-        #         self.close()
-        #         self.socket_open()
-        #         self.ensure_dfu_mode()
+        #         resp = self.dfu_adapter.get_message()
+        #         return resp
+        #     except Exception as e:
+        #         print(f'get message exception: {e}')
+        #         self.client_socket.close()
+        #         self.open()
         # return None
 
     def __get_response(self, operation):
