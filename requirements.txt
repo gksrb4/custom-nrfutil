@@ -6,7 +6,7 @@ intelhex
 libusb1
 pc_ble_driver_py >= 0.14.2
 piccata
-protobuf==3.15.7
+protobuf==3.18.3
 pyserial
 pyspinel >= 1.0.0a3
 pyyaml
